@@ -138,6 +138,21 @@ export default function OwnerProfileScreen() {
             </View>
           </View>
 
+          {/* Support & Queries Button */}
+          <View className="mt-6 bg-white border-y border-gray-100">
+            <TouchableOpacity 
+              onPress={() => router.push('/(owner-tabs)/queries')}
+              className="flex-row items-center px-6 py-4"
+            >
+              <Ionicons name="help-buoy-outline" size={22} color="#03624C" className="mr-4" />
+              <View className="flex-1 ml-4">
+                <Text className="font-sans-semibold text-[15px] text-[#032221]">Support & Queries</Text>
+                <Text className="font-sans-medium text-[13px] text-gray-500 mt-0.5">Contact support or view past queries</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+            </TouchableOpacity>
+          </View>
+
           {/* Logout Button */}
           <View className="mt-6 bg-white border-y border-gray-100 mb-8">
             <TouchableOpacity 

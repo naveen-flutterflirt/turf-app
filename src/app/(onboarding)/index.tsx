@@ -102,7 +102,7 @@ export default function OnboardingScreen() {
         renderItem={({ item, index }) => {
           const isDark = index === 0;
           return (
-            <View style={{ width, height }} className={item.isFullScreen ? 'bg-secondary-dark' : 'bg-turf-bg'}>
+            <View style={{ width, height: '100%' }} className={item.isFullScreen ? 'bg-secondary-dark' : 'bg-turf-bg'}>
               {item.isFullScreen ? (
                 <View className="flex-1 bg-secondary-dark">
                   {/* Stadium Background */}
@@ -117,10 +117,11 @@ export default function OnboardingScreen() {
                     style={{ backgroundColor: 'rgba(0, 35, 30, 0.40)' }}
                   />
 
+
                   {/* Content Container with Manual Safe Area */}
                   <View className="flex-1" style={{ paddingTop: insets.top, paddingBottom: contentPaddingBottom }}>
                     {/* Top Row: Logo & Skip */}
-                    <View className="w-full px-6 mt-4 flex-row justify-between items-center z-20">
+                    <View className="w-full px-6 mt-6 flex-row justify-between items-center z-20">
                       <View className="flex-row items-center">
                         <Image source={item.logo} style={{ width: 32, height: 32 }} resizeMode="contain" />
                         <Image source={item.logo_text} style={{ width: 85, height: 28, marginLeft: 8 }} resizeMode="contain" />
@@ -200,6 +201,7 @@ export default function OnboardingScreen() {
       />
 
       {/* Pagination Dots - Positioned absolutely at the bottom, safe from the content */}
+
       <View
         className="absolute flex-row w-full justify-center space-x-4 pointer-events-none"
         style={{ bottom: Math.max(insets.bottom + 10, 20) }}
@@ -207,12 +209,13 @@ export default function OnboardingScreen() {
         {slides.map((_, index) => (
           <View
             key={index}
-            className={`h-2 rounded-full transition-all duration-300 ${currentIndex === index ? 'w-8 bg-primary-dark' : 'w-2 bg-gray-300'
+            className={`h-2 rounded-full mx-1 transition-all duration-300 ${currentIndex === index ? 'w-8 bg-primary-dark' : 'w-2 bg-gray-300'
               } ${currentIndex === 0 && index === 0 ? 'bg-primary' : ''} ${currentIndex === 0 && index !== 0 ? 'bg-white/40' : ''
               }`}
           />
         ))}
       </View>
+
     </View>
   );
 }

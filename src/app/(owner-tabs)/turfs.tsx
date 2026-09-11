@@ -61,8 +61,7 @@ export default function OwnerTurfsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTab, setSelectedTab] = useState('All');
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [selectedTab, setSelectedTab] = useState('Active');
 
   const handleDelete = (id: string) => {
     showAlert(
@@ -96,43 +95,6 @@ export default function OwnerTurfsScreen() {
     );
   };
 
-  const handleToggleStatus = (turf: any) => {
-    const id = turf.id || turf._id;
-    const isCurrentlyActive = turf.is_active !== false; // defaults to true if not explicitly false
-    const newStatusLabel = isCurrentlyActive ? 'Deactivate' : 'Activate';
-
-    showAlert(
-      `${newStatusLabel} Turf`,
-      `Are you sure you want to ${newStatusLabel.toLowerCase()} this turf?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: newStatusLabel,
-          style: isCurrentlyActive ? 'destructive' : 'default',
-          onPress: async () => {
-            try {
-              const response = await fetch(`${baseUrl}/owner/turfs/${id}`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${userData?.token}`
-                },
-                body: JSON.stringify({ is_active: !isCurrentlyActive })
-              });
-              if (response.ok) {
-                showAlert('Success', `Turf ${newStatusLabel.toLowerCase()}d successfully.`);
-                fetchTurfs(true);
-              } else {
-                showAlert('Error', `Failed to ${newStatusLabel.toLowerCase()} turf.`);
-              }
-            } catch (err) {
-              showAlert('Error', 'Failed to connect to the server');
-            }
-          }
-        }
-      ]
-    );
-  };
 
   const fetchTurfs = async (isRefresh = false) => {
     if (!isRefresh) setIsLoading(true);
@@ -176,7 +138,7 @@ export default function OwnerTurfsScreen() {
 
   const filteredTurfs = Array.isArray(turfs) ? turfs.filter(t => {
     const matchesSearch = (t.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (t.city || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = selectedTab === 'All' || (t.status || 'ACTIVE').toUpperCase() === selectedTab.toUpperCase();
+    const matchesTab = (t.status || 'ACTIVE').toUpperCase() === selectedTab.toUpperCase();
     return matchesSearch && matchesTab;
   }).sort((a, b) => {
     const nameA = (a.name || '').toLowerCase();
@@ -187,13 +149,7 @@ export default function OwnerTurfsScreen() {
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       <StatusBar style="dark" />
-      {activeMenuId && (
-        <TouchableOpacity
-          activeOpacity={1}
-          style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 40 }}
-          onPress={() => setActiveMenuId(null)}
-        />
-      )}
+
       <View className="flex-1 pt-12">
 
         {/* Header Section */}
@@ -228,11 +184,9 @@ export default function OwnerTurfsScreen() {
         {/* Tabs */}
         <View className="px-6 mb-4">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-            {['All', 'Active', 'Pending', 'Rejected'].map((tab) => {
+            {['Active', 'Pending', 'Rejected'].map((tab) => {
               const isActive = selectedTab === tab;
-              const count = tab === 'All'
-                ? turfs.length
-                : turfs.filter(t => (t.status || 'ACTIVE').toUpperCase() === tab.toUpperCase()).length;
+              const count = turfs.filter(t => (t.status || 'ACTIVE').toUpperCase() === tab.toUpperCase()).length;
 
               return (
                 <TouchableOpacity
@@ -270,7 +224,7 @@ export default function OwnerTurfsScreen() {
               .map((turf) => (
                 <View
                   key={turf.id || turf._id}
-                  className="bg-white rounded-[24px] mb-6 p-4 border border-gray-100"
+                  className={`bg-white rounded-[24px] mb-6 p-4 border relative ${turf.is_open !== false ? 'border-gray-100' : 'opacity-60 border-gray-200'}`}
                   style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 }}
                 >
                   <View className="flex-row mb-1">
@@ -290,9 +244,9 @@ export default function OwnerTurfsScreen() {
 
                       {/* Status Badge inside image top-left */}
                       <View className="absolute top-2 left-2 rounded-full px-2.5 py-1.5 flex-row items-center bg-white/95" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
-                        <Ionicons name={turf.status === 'PENDING' ? 'time-outline' : turf.status === 'ACTIVE' ? 'checkmark-circle' : 'close-circle-outline'} size={12} color={turf.status === 'PENDING' ? '#B08D23' : turf.status === 'ACTIVE' ? '#1E7B44' : '#4B5563'} />
-                        <Text className={`font-sans-bold text-[10px] ml-1 uppercase tracking-wide ${turf.status === 'PENDING' ? 'text-[#B08D23]' : turf.status === 'ACTIVE' ? 'text-[#1E7B44]' : 'text-[#4B5563]'}`}>
-                          {turf.status || 'ACTIVE'}
+                        <Ionicons name={turf.is_open !== false ? 'checkmark-circle' : 'close-circle'} size={12} color={turf.is_open !== false ? '#1E7B44' : '#DC2626'} />
+                        <Text className={`font-sans-bold text-[10px] ml-1 uppercase tracking-wide ${turf.is_open !== false ? 'text-[#1E7B44]' : 'text-[#DC2626]'}`}>
+                          {turf.is_open !== false ? 'ACTIVE' : 'DEACTIVATED'}
                         </Text>
                       </View>
                     </View>
@@ -300,48 +254,10 @@ export default function OwnerTurfsScreen() {
                     {/* Right Side: Details (60%) */}
                     <View className="flex-1 justify-start">
                       <View className="flex-row justify-between items-start py-2 z-50">
-                        <Text className="font-sans-bold text-[#032221] text-lg flex-1 pr-2 leading-tight" numberOfLines={1}>{turf.name}</Text>
-                        <View className="relative z-50">
-                          <TouchableOpacity
-                            className="ml-1 mt-0.5 p-1"
-                            onPress={() => setActiveMenuId(activeMenuId === (turf.id || turf._id) ? null : (turf.id || turf._id))}
-                          >
-                            <Ionicons name="ellipsis-vertical" size={20} color="#4B5563" />
-                          </TouchableOpacity>
-                          {activeMenuId === (turf.id || turf._id) && (
-                            <View className="absolute top-8 right-0 bg-white rounded-xl py-1 w-36 border border-gray-100 z-50 overflow-hidden" style={{ elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12 }}>
-                              <TouchableOpacity
-                                className="px-3 py-2.5 flex-row items-center border-b border-gray-50"
-                                onPress={() => {
-                                  setActiveMenuId(null);
-                                  router.push({
-                                    pathname: `/(owner-tabs)/edit-turf/${turf.id || turf._id}` as any,
-                                    params: { turfData: JSON.stringify(turf) }
-                                  });
-                                }}
-                              >
-                                <Ionicons name="create-outline" size={16} color="#03624C" />
-                                <Text className="ml-2 font-sans-semibold text-gray-700 text-[13px]">Edit</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                className="px-3 py-2.5 flex-row items-center border-b border-gray-50"
-                                onPress={() => { setActiveMenuId(null); handleToggleStatus(turf); }}
-                              >
-                                <Ionicons name={turf.is_active !== false ? "eye-off-outline" : "eye-outline"} size={16} color="#03624C" />
-                                <Text className="ml-2 font-sans-semibold text-gray-700 text-[13px]">
-                                  {turf.is_active !== false ? 'Deactivate' : 'Activate'}
-                                </Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                className="px-3 py-2.5 flex-row items-center"
-                                onPress={() => { setActiveMenuId(null); handleDelete(turf.id || turf._id); }}
-                              >
-                                <Ionicons name="trash-outline" size={16} color="#DC2626" />
-                                <Text className="ml-2 font-sans-semibold text-[#DC2626] text-[13px]">Delete</Text>
-                              </TouchableOpacity>
-                            </View>
-                          )}
+                        <View className="flex-1 pr-2">
+                          <Text className="font-sans-bold text-[#032221] text-lg leading-tight" numberOfLines={1}>{turf.name}</Text>
                         </View>
+
                       </View>
 
                       {/* Location */}
@@ -385,7 +301,7 @@ export default function OwnerTurfsScreen() {
                         <Ionicons name="calendar-outline" size={18} color="#03624C" />
                       </View>
                       <View className="flex-1">
-                        <Text className="font-sans-bold text-[#032221] text-[13px]" numberOfLines={1}>0</Text>
+                        <Text className="font-sans-bold text-[#032221] text-[13px]" numberOfLines={1}>{turf.bookings_count || 0}</Text>
                         <Text className="font-sans-medium text-gray-400 text-[11px] mt-0.5">Total Bookings</Text>
                       </View>
                     </View>
@@ -415,6 +331,7 @@ export default function OwnerTurfsScreen() {
                       <Text className="font-sans-semibold text-white text-sm ml-2">View Bookings</Text>
                     </TouchableOpacity>
                   </View>
+
                 </View>
               ))
           )}

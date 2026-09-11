@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { AuthInput } from '../../components/ui/AuthInput';
 import { AuthButton } from '../../components/ui/AuthButton';
-import { SocialLoginButton } from '../../components/ui/SocialLoginButton';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useApi } from '../../context/ApiContext';
 import { useAppStore } from '../../stores/useAppStore';
@@ -43,22 +43,24 @@ export default function CustomerSignupScreen() {
 
     setIsLoading(true);
     try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        phone: phone.trim(),
+      };
+      
       const response = await fetch(`${baseUrl}/auth/customer/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          phone,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        login('CUSTOMER', data);
-        router.replace('/(tabs)' as any);
+        // Success - Redirect to verification screen
+        router.push({ pathname: '/(auth)/verify-email' as any, params: { email: payload.email, role: 'CUSTOMER' } });
       } else {
         showAlert('Signup Failed', data.message || 'An error occurred');
       }
@@ -156,20 +158,7 @@ export default function CustomerSignupScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Social Divider */}
-            <View className="flex-row items-center mb-6">
-              <View className="flex-1 h-[1px] bg-gray-300" />
-              <Text className="mx-4 text-gray-500 font-sans-medium text-xs">
-                or continue with
-              </Text>
-              <View className="flex-1 h-[1px] bg-gray-300" />
-            </View>
 
-            {/* Social Buttons */}
-            <View className="flex-row justify-between mb-8 mx-[-8px]">
-              <SocialLoginButton title="Google" provider="google" />
-              <SocialLoginButton title="Apple" provider="apple" />
-            </View>
 
             {/* Login Link */}
             <View className="flex-row justify-center mt-auto">

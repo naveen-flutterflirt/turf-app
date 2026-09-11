@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { AuthInput } from '../../components/ui/AuthInput';
 import { AuthButton } from '../../components/ui/AuthButton';
-import { SocialLoginButton } from '../../components/ui/SocialLoginButton';
+
 import { Ionicons } from '@expo/vector-icons';
 import { useApi } from '../../context/ApiContext';
 import { useAppStore } from '../../stores/useAppStore';
@@ -117,7 +117,7 @@ export default function CustomerLoginScreen() {
 
             {/* Forgot Password */}
             <View className="items-end mb-6">
-              <TouchableOpacity activeOpacity={0.7}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push({ pathname: '/(auth)/forgot-password' as any, params: { role: 'CUSTOMER' } })}>
                 <Text className="text-primary-dark font-sans-semibold text-sm">
                   Forgot Password?
                 </Text>
@@ -141,20 +141,6 @@ export default function CustomerLoginScreen() {
               )}
             </TouchableOpacity>
 
-            {/* Social Divider */}
-            <View className="flex-row items-center mb-6">
-              <View className="flex-1 h-[1px] bg-gray-300" />
-              <Text className="mx-4 text-gray-500 font-sans-medium text-xs">
-                or continue with
-              </Text>
-              <View className="flex-1 h-[1px] bg-gray-300" />
-            </View>
-
-            {/* Social Buttons */}
-            <View className="flex-row justify-between mb-8 mx-[-8px]">
-              <SocialLoginButton title="Google" provider="google" />
-              <SocialLoginButton title="Apple" provider="apple" />
-            </View>
 
             {/* Sign Up Link */}
             <View className="flex-row justify-center mt-auto">

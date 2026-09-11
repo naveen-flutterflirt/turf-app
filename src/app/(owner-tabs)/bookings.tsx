@@ -44,6 +44,11 @@ export default function OwnerBookingsScreen() {
   const [selectedTurfFilter, setSelectedTurfFilter] = useState<string | null>(null);
   const [showTurfFilter, setShowTurfFilter] = useState(false);
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+
   const uniqueTurfs = Array.from(new Set(bookings.map(b => b.turf_id)))
     .map(id => {
       const turf = bookings.find(b => b.turf_id === id);
@@ -51,17 +56,42 @@ export default function OwnerBookingsScreen() {
     })
     .filter(t => t.id);
 
-  const fetchBookings = async (isRefresh = false) => {
-    if (!isRefresh) setIsLoading(true);
+  const fetchBookings = async (pageToFetch = 1, isRefresh = false) => {
+    if (isRefresh) {
+      setIsLoading(true);
+      setPage(1);
+    } else if (pageToFetch > 1) {
+      setIsFetchingMore(true);
+    } else {
+      setIsLoading(true);
+    }
+
     try {
-      const response = await fetch(`${baseUrl}/owner/bookings`, {
+      const response = await fetch(`${baseUrl}/owner/bookings?page=${pageToFetch}&limit=10`, {
         headers: {
           'Authorization': `Bearer ${userData?.token}`,
         },
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        setBookings(data.data || []);
+        setTotalPages(data.meta?.total_pages || 1);
+        
+        const validBookings = (data.data || []).filter((b: any) => {
+          const status = (b.status || '').toUpperCase();
+          return status !== 'PENDING' && status !== 'PAYMENT_PENDING';
+        });
+
+        if (isRefresh || pageToFetch === 1) {
+          setBookings(validBookings);
+        } else {
+          // Remove duplicates
+          setBookings(prev => {
+            const newArray = [...prev, ...validBookings];
+            const unique = newArray.filter((v, i, a) => a.findIndex(t => (t.booking_id === v.booking_id)) === i);
+            return unique;
+          });
+        }
+        setPage(pageToFetch);
       } else {
         showAlert('Error', data.message || 'Failed to load bookings');
       }
@@ -71,17 +101,26 @@ export default function OwnerBookingsScreen() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsFetchingMore(false);
     }
   };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchBookings(true);
+    fetchBookings(1, true);
+  };
+
+  const handleScroll = (event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
+    if (isCloseToBottom && !isFetchingMore && !isLoading && page < totalPages) {
+      fetchBookings(page + 1);
+    }
   };
 
   useFocusEffect(
     useCallback(() => {
-      fetchBookings();
+      fetchBookings(1, true);
       return () => {
         setSelectedTurfFilter(null);
         router.setParams({ turfId: '' });
@@ -156,7 +195,7 @@ export default function OwnerBookingsScreen() {
   const filteredBookings = getFilteredBookings(selectedTab).sort((a, b) => {
     const dateA = new Date(`${a.booking_date?.split('T')[0]}T${a.start_time || '00:00:00'}`).getTime();
     const dateB = new Date(`${b.booking_date?.split('T')[0]}T${b.start_time || '00:00:00'}`).getTime();
-    return dateA - dateB;
+    return dateB - dateA; // Sort newest first
   });
 
   const tabs = [
@@ -184,14 +223,14 @@ export default function OwnerBookingsScreen() {
           </View>
           <View className="flex-row gap-2">
             {selectedDateFilter && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setSelectedDateFilter(null)}
                 className="w-10 h-10 rounded-xl bg-red-500/20 items-center justify-center border border-red-500/40"
               >
                 <Ionicons name="close" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
               className={`w-10 h-10 rounded-xl items-center justify-center border ${selectedDateFilter ? 'bg-white border-white' : 'bg-white/10 border-white/20'}`}
             >
@@ -237,7 +276,7 @@ export default function OwnerBookingsScreen() {
             </View>
             <View className="flex-row gap-2">
               {selectedTurfFilter && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setSelectedTurfFilter(null);
                     router.setParams({ turfId: '' });
@@ -260,6 +299,8 @@ export default function OwnerBookingsScreen() {
             refreshControl={
               <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#03624C']} tintColor="#03624C" />
             }
+            onScroll={handleScroll}
+            scrollEventThrottle={400}
           >
             {isLoading ? (
               <ActivityIndicator size="large" color="#03624C" style={{ marginTop: 50 }} />
@@ -267,10 +308,10 @@ export default function OwnerBookingsScreen() {
               <View className="items-center justify-center mt-20">
                 <Ionicons name="calendar-outline" size={60} color="#E5E7EB" />
                 <Text className="text-gray-500 font-sans-medium mt-4 text-center px-6">
-                  {selectedDateFilter 
-                    ? `No bookings found on ${selectedDateFilter.toLocaleDateString()}.` 
-                    : searchQuery 
-                      ? "No bookings match your search." 
+                  {selectedDateFilter
+                    ? `No bookings found on ${selectedDateFilter.toLocaleDateString()}.`
+                    : searchQuery
+                      ? "No bookings match your search."
                       : `No ${selectedTab.toLowerCase()} bookings found.`}
                 </Text>
               </View>
@@ -334,6 +375,19 @@ export default function OwnerBookingsScreen() {
                 );
               })
             )}
+            
+            {/* Loading more indicator */}
+            {isFetchingMore && (
+              <View className="py-4 items-center justify-center">
+                <ActivityIndicator size="small" color="#03624C" />
+                <Text className="text-gray-500 font-sans-medium text-xs mt-2">Loading more bookings...</Text>
+              </View>
+            )}
+            {!isFetchingMore && page >= totalPages && filteredBookings.length > 0 && (
+              <View className="py-4 items-center justify-center">
+                <Text className="text-gray-400 font-sans-medium text-xs">No more bookings</Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </SafeAreaView>
@@ -344,7 +398,7 @@ export default function OwnerBookingsScreen() {
         animationType="fade"
         onRequestClose={() => setShowDatePicker(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           className="flex-1 bg-black/50 justify-center items-center px-4"
           activeOpacity={1}
           onPress={() => setShowDatePicker(false)}
@@ -387,7 +441,7 @@ export default function OwnerBookingsScreen() {
         animationType="fade"
         onRequestClose={() => setShowTurfFilter(false)}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           className="flex-1 bg-black/50 justify-center items-center px-4"
           activeOpacity={1}
           onPress={() => setShowTurfFilter(false)}
@@ -399,9 +453,9 @@ export default function OwnerBookingsScreen() {
                 <Ionicons name="close-circle-outline" size={24} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView className="max-h-64 px-4" showsVerticalScrollIndicator={false}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   setSelectedTurfFilter(null);
                   setShowTurfFilter(false);
@@ -411,9 +465,9 @@ export default function OwnerBookingsScreen() {
                 <Text className={`font-sans-bold ${selectedTurfFilter === null ? 'text-[#03624C]' : 'text-gray-600'}`}>All Turfs</Text>
                 {selectedTurfFilter === null && <Ionicons name="checkmark-circle" size={20} color="#03624C" />}
               </TouchableOpacity>
-              
+
               {uniqueTurfs.map(turf => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   key={turf.id}
                   onPress={() => {
                     setSelectedTurfFilter(turf.id);

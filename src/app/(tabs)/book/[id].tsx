@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useApi } from '../../../context/ApiContext';
 import { useAppStore } from '../../../stores/useAppStore';
@@ -36,17 +37,14 @@ const formatSlotTime = (time: string) => {
 export default function SelectSlotScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id, turfData } = useLocalSearchParams();
+  const { id, turfData, isReschedule, bookingId } = useLocalSearchParams();
   const { baseUrl } = useApi();
   const userData = useAppStore((state) => state.userData);
 
   const [turf, setTurf] = useState<any>(null);
   const [dates, setDates] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [slots, setSlots] = useState<any[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]);
 
   useEffect(() => {
@@ -62,45 +60,42 @@ export default function SelectSlotScreen() {
     setSelectedDate(generated[0]);
   }, [turfData]);
 
-  const fetchSlots = useCallback(async (date: Date) => {
-    if (!id || !userData?.token) return;
-    setIsLoadingSlots(true);
-    setSlots([]);
+  // Clear selected slots when date changes
+  useEffect(() => {
     setSelectedSlots([]);
+  }, [selectedDate]);
 
-    try {
-      const dateStr = date.toISOString().split('T')[0];
+  const dateStr = selectedDate?.toISOString().split('T')[0];
+
+  const { data: slotsData, isLoading: isLoadingSlots } = useQuery({
+    queryKey: ['slots', id, dateStr],
+    queryFn: async () => {
       const response = await fetch(`${baseUrl}/customer/turfs/${id}/slots?date=${dateStr}`, {
         headers: {
-          'Authorization': `Bearer ${userData.token}`
+          'Authorization': `Bearer ${userData?.token}`
         }
       });
-      const data = await response.json();
-      if (response.ok) {
-        setSlots(data.data || data.slots || (Array.isArray(data) ? data : []));
-      }
-    } catch (error) {
-      console.error('Error fetching slots:', error);
-    } finally {
-      setIsLoadingSlots(false);
-    }
-  }, [id, baseUrl, userData]);
+      return response.json();
+    },
+    enabled: !!id && !!userData?.token && !!dateStr,
+  });
 
-  useEffect(() => {
-    if (selectedDate) {
-      fetchSlots(selectedDate);
-    }
-  }, [selectedDate, fetchSlots]);
+  const slots = slotsData?.data || slotsData?.slots || (Array.isArray(slotsData) ? slotsData : []);
 
   const handleSlotPress = (slot: any) => {
     if (slot.status !== 'AVAILABLE' && slot.status !== 'available' && !(!slot.status)) return;
+
+    if (isReschedule === 'true') {
+      // For reschedule, only allow one slot selection
+      setSelectedSlots([slot]);
+      return;
+    }
 
     setSelectedSlots(prev => {
       const exists = prev.find(s => s.start === slot.start && s.end === slot.end);
       if (exists) {
         return prev.filter(s => !(s.start === slot.start && s.end === slot.end));
       } else {
-        // Can add logic here if contiguous required, but for now we allow any selection
         return [...prev, slot].sort((a, b) => {
           return a.start.localeCompare(b.start);
         });
@@ -108,8 +103,44 @@ export default function SelectSlotScreen() {
     });
   };
 
+  const handleRescheduleAPI = async () => {
+    try {
+      const dateStr = selectedDate?.toISOString().split('T')[0];
+      const slot = selectedSlots[0];
+      
+      const response = await fetch(`${baseUrl}/customer/bookings/${bookingId}/reschedule`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${userData?.token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          date: dateStr,
+          start_time: slot.start,
+          end_time: slot.end
+        })
+      });
+      
+      const data = await response.json();
+      if (response.ok && data.success) {
+        Alert.alert('Success', 'Booking rescheduled successfully!');
+        router.push('/(tabs)/bookings');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to reschedule booking');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to connect to the server');
+    }
+  };
+
   const handleProceed = () => {
     if (selectedSlots.length === 0) return;
+
+    if (isReschedule === 'true') {
+      handleRescheduleAPI();
+      return;
+    }
 
     router.push({
       pathname: '/booking-summary',
@@ -128,15 +159,31 @@ export default function SelectSlotScreen() {
       Evening: []
     };
 
-    slots.forEach(slot => {
-      const startHour = parseInt(slot.start.split(':')[0], 10);
-      if (startHour < 12) groups.Morning.push(slot);
-      else if (startHour < 17) groups.Afternoon.push(slot);
-      else groups.Evening.push(slot);
+    const now = new Date();
+    const isToday = selectedDate && selectedDate.toDateString() === now.toDateString();
+    const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+
+    slots.forEach((slot: any) => {
+      const [h, m] = slot.start.split(':');
+      const startHour = parseInt(h, 10);
+      const startMinute = parseInt(m || '0', 10);
+
+      let modifiedSlot = { ...slot };
+
+      if (isToday) {
+        const slotTimeInMinutes = startHour * 60 + startMinute;
+        if (slotTimeInMinutes - currentTimeInMinutes <= 20) {
+          modifiedSlot.status = 'EXPIRED';
+        }
+      }
+
+      if (startHour < 12) groups.Morning.push(modifiedSlot);
+      else if (startHour < 17) groups.Afternoon.push(modifiedSlot);
+      else groups.Evening.push(modifiedSlot);
     });
 
     return groups;
-  }, [slots]);
+  }, [slots, selectedDate]);
 
   if (!turf) {
     return (
@@ -155,10 +202,12 @@ export default function SelectSlotScreen() {
       {/* Header */}
       <View className="bg-white px-4 pb-4 flex-row items-center justify-between border-b border-gray-100" style={{ paddingTop: insets.top + 10 }}>
         <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2">
+          <TouchableOpacity onPress={() => router.push({ pathname: '/(tabs)/search' })} className="w-10 h-10 items-center justify-center -ml-2">
             <Ionicons name="arrow-back" size={24} color="#032221" />
           </TouchableOpacity>
-          <Text className="text-xl font-sans-bold text-[#032221] ml-2">Select Date & Slot</Text>
+          <Text className="text-xl font-sans-bold text-[#032221] ml-2">
+            {isReschedule === 'true' ? 'Reschedule Booking' : 'Select Date & Slot'}
+          </Text>
         </View>
         <TouchableOpacity onPress={() => setShowDatePicker(true)} className="w-10 h-10 items-center justify-center">
           <Ionicons name="calendar-outline" size={24} color="#03624C" />
@@ -320,7 +369,9 @@ export default function SelectSlotScreen() {
             onPress={handleProceed}
             className="bg-[#03624C] px-8 py-3.5 rounded-2xl"
           >
-            <Text className="text-white font-sans-bold text-base">Proceed</Text>
+            <Text className="text-white font-sans-bold text-base">
+              {isReschedule === 'true' ? 'Confirm Reschedule' : 'Proceed'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}

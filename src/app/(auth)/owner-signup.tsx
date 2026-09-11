@@ -59,9 +59,8 @@ export default function OwnerSignupScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        // Success
-        login('OWNER', data);
-        router.replace('/(owner-tabs)' as any);
+        // Success - Redirect to verification screen
+        router.push({ pathname: '/(auth)/verify-email' as any, params: { email, role: 'OWNER' } });
       } else {
         showAlert('Signup Failed', data.message || 'An error occurred');
       }

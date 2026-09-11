@@ -17,8 +17,11 @@ import '../global.css';
 
 import { ApiProvider } from '../context/ApiContext';
 import { AlertProvider } from '../context/AlertContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { LogBox } from 'react-native';
+
+const queryClient = new QueryClient();
 
 // Disable Reanimated strict mode to hide the spammy "Reading from value during component render" warnings
 // which are usually caused by third-party navigation or gesture libraries in development mode.
@@ -52,23 +55,25 @@ export default function RootLayout() {
   }
 
   return (
-    <ApiProvider>
-      <AlertProvider>
-        {/* Status bar overlays the app */}
-        <StatusBar
-          barStyle="light-content"
-          translucent={true}
-          backgroundColor="transparent"
-        />
+    <QueryClientProvider client={queryClient}>
+      <ApiProvider>
+        <AlertProvider>
+          {/* Status bar overlays the app */}
+          <StatusBar
+            barStyle="light-content"
+            translucent={true}
+            backgroundColor="transparent"
+          />
 
-        {/* Removed explicit Stack.Screen children to let Expo Router auto-discover 
-            and prevent the "extraneous route" warnings for booking-summary etc. */}
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
-        />
-      </AlertProvider>
-    </ApiProvider>
+          {/* Removed explicit Stack.Screen children to let Expo Router auto-discover 
+              and prevent the "extraneous route" warnings for booking-summary etc. */}
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          />
+        </AlertProvider>
+      </ApiProvider>
+    </QueryClientProvider>
   );
 }

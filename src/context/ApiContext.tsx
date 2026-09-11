@@ -7,7 +7,7 @@ interface ApiContextType {
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
 
 export function ApiProvider({ children }: { children: ReactNode }) {
-  const baseUrl = 'https://turf-booking-1-mns7.onrender.com';
+  const baseUrl = process.env.EXPO_PUBLIC_API_URL as string;
 
   return (
     <ApiContext.Provider value={{ baseUrl }}>

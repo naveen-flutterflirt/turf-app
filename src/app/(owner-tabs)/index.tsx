@@ -74,11 +74,7 @@ export default function OwnerDashboardScreen() {
         {/* Header Section */}
         <View className="px-6 pt-2 pb-6 flex-row justify-between items-center">
           <View>
-            <View className="flex-row items-center mb-1">
-              <Text className="text-xl font-sans-bold text-turf-text">TurfCut </Text>
-              <Text className="text-xl font-sans-bold text-primary-dark">Owner</Text>
-            </View>
-            <Text className="text-lg font-sans-bold text-turf-text mb-1">
+            <Text className="text-2xl font-sans-bold text-turf-text mt-2 mb-1">
               Hi, {userName}! 👋
             </Text>
             <Text className="text-xs font-sans-medium text-gray-500">
@@ -86,17 +82,17 @@ export default function OwnerDashboardScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             className="relative"
             onPress={() => router.push('/(owner-tabs)/notifications' as any)}
           >
             <Ionicons name="notifications-outline" size={28} color="#032221" />
             <View className="absolute right-0 top-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
+        <ScrollView
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#03624C']} tintColor="#03624C" />
@@ -108,7 +104,7 @@ export default function OwnerDashboardScreen() {
             <>
               {/* Overview Cards */}
               <View className="px-6 mb-4 mt-2 flex-row flex-wrap justify-between">
-                
+
                 {/* Total Revenue */}
                 <View className="w-[48%] bg-white rounded-[20px] p-3.5 mb-4 border border-gray-100" style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}>
                   <View className="flex-row items-center">
@@ -181,13 +177,15 @@ export default function OwnerDashboardScreen() {
 
               {/* Recent Bookings List */}
               <View className="px-6">
-                {!dashboardData?.recent_bookings || dashboardData.recent_bookings.length === 0 ? (
+                {!dashboardData?.recent_bookings || dashboardData.recent_bookings.filter((b: any) => (b.status || 'CONFIRMED').toUpperCase() === 'CONFIRMED').length === 0 ? (
                   <View className="items-center justify-center py-6">
-                    <Text className="text-gray-500 font-sans-medium">No recent bookings found.</Text>
+                    <Text className="text-gray-500 font-sans-medium">No recent confirmed bookings found.</Text>
                   </View>
                 ) : (
-                  dashboardData.recent_bookings.map((booking: any) => {
-                    const status = (booking.status || 'CONFIRMED').toUpperCase();
+                  dashboardData.recent_bookings
+                    .filter((booking: any) => (booking.status || 'CONFIRMED').toUpperCase() === 'CONFIRMED')
+                    .map((booking: any) => {
+                      const status = (booking.status || 'CONFIRMED').toUpperCase();
                     let statusConfig = { bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', label: 'CONFIRMED' };
 
                     if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
@@ -197,7 +195,7 @@ export default function OwnerDashboardScreen() {
                     }
 
                     return (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         key={booking.booking_id}
                         onPress={() => router.push({
                           pathname: `/(owner-tabs)/booking-details/${booking.booking_id}` as any,

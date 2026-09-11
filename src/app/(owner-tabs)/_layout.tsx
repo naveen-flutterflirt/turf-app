@@ -75,6 +75,7 @@ export default function OwnerTabLayout() {
       <Tabs.Screen name="edit-turf/[id]" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="booking-details/[id]" options={{ href: null }} />
+      <Tabs.Screen name="queries" options={{ href: null }} />
     </Tabs>
   );
 }

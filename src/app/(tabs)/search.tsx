@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image, Modal, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ export default function SearchScreen() {
 
   const [turfs, setTurfs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals visibility
@@ -27,8 +28,8 @@ export default function SearchScreen() {
     max_price: null,
   });
 
-  const fetchTurfs = async () => {
-    setIsLoading(true);
+  const fetchTurfs = async (isRefresh = false) => {
+    if (!isRefresh) setIsLoading(true);
     try {
       const params = new URLSearchParams();
       if (filters.radius) {
@@ -55,7 +56,13 @@ export default function SearchScreen() {
       console.error('Error fetching turfs for search:', error);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchTurfs(true);
   };
 
   useFocusEffect(
@@ -65,6 +72,7 @@ export default function SearchScreen() {
   );
 
   const filteredTurfs = turfs.filter((turf) => {
+    if (turf.is_open === false) return false;
     const query = searchQuery.toLowerCase();
     return (
       turf.name.toLowerCase().includes(query) ||
@@ -119,7 +127,13 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={['#03624C']} tintColor="#03624C" />
+          }
+        >
 
           {/* Search Bar */}
           <View className="px-6 mb-4 z-10">
@@ -175,12 +189,12 @@ export default function SearchScreen() {
           <View className="px-6 flex-row justify-between items-end mb-4">
             <Text className="text-[13px] font-sans-bold text-[#032221]">{filteredTurfs.length} turfs found</Text>
             <View className="flex-row items-center">
-              <Text className="text-[11px] font-sans-medium text-gray-500 mr-2">Sort by</Text>
+              {/* <Text className="text-[11px] font-sans-medium text-gray-500 mr-2">Sort by</Text>
               <Ionicons name="swap-vertical" size={12} color="#03624C" className="mr-1" />
               <TouchableOpacity className="flex-row items-center">
                 <Text className="text-[12px] font-sans-bold text-[#032221] mr-1">Recommended</Text>
                 <Ionicons name="chevron-down" size={12} color="#03624C" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 

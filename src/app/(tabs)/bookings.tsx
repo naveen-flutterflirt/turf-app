@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Ref
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../../context/ApiContext';
 import { useAppStore } from '../../stores/useAppStore';
 
@@ -30,44 +31,33 @@ export default function BookingsScreen() {
   const { baseUrl } = useApi();
   const userData = useAppStore((state) => state.userData);
 
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('All');
 
-  const fetchBookings = async (isRefresh = false) => {
-    if (!isRefresh) setIsLoading(true);
-    try {
+  const { data: bookingsResponse, isLoading } = useQuery({
+    queryKey: ['customerBookings'],
+    queryFn: async () => {
       const response = await fetch(`${baseUrl}/customer/bookings`, {
         headers: {
           'Authorization': `Bearer ${userData?.token}`,
         },
       });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setBookings(data.data || []);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
+      return response.json();
+    },
+    enabled: !!userData?.token,
+  });
 
-  const handleRefresh = () => {
+  const bookings = bookingsResponse?.data || [];
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    fetchBookings(true);
+    await queryClient.refetchQueries({ queryKey: ['customerBookings'] });
+    setIsRefreshing(false);
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchBookings();
-    }, [])
-  );
 
   const getFilteredBookings = () => {
-    return bookings.filter(b => {
+    return bookings.filter((b: any) => {
       const status = (b.status || '').toUpperCase();
       const bookingDate = new Date(`${b.booking_date?.split('T')[0]}T${b.start_time || '00:00:00'}`);
       const now = new Date();
@@ -79,7 +69,7 @@ export default function BookingsScreen() {
       if (selectedTab === 'Cancelled') return status === 'CANCELLED';
 
       return status === 'CONFIRMED';
-    }).sort((a, b) => {
+    }).sort((a: any, b: any) => {
       const dateA = new Date(`${a.booking_date?.split('T')[0]}T${a.start_time || '00:00:00'}`).getTime();
       const dateB = new Date(`${b.booking_date?.split('T')[0]}T${b.start_time || '00:00:00'}`).getTime();
       return dateB - dateA; // Sort newest first
@@ -104,7 +94,7 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-[#F9FAFB]">
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <View className="px-6 pt-6 pb-4">
         <Text className="text-[28px] font-sans-bold text-[#032221] mb-1">My Bookings</Text>
@@ -149,21 +139,21 @@ export default function BookingsScreen() {
             </Text>
           </View>
         ) : (
-          filteredBookings.map((booking) => {
+          filteredBookings.map((booking: any) => {
             const bookingDate = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
             const isFuture = bookingDate >= new Date();
             const statusConfig = getStatusConfig(booking.status || '', isFuture);
-            
+
             // Get first image
             let imageUrl = null;
             if (booking.turf_images) {
-               try {
-                 const parsed = typeof booking.turf_images === 'string' ? JSON.parse(booking.turf_images) : booking.turf_images;
-                 imageUrl = Array.isArray(parsed) ? (parsed[0]?.image_url || parsed[0]) : null;
-               } catch(e) {}
+              try {
+                const parsed = typeof booking.turf_images === 'string' ? JSON.parse(booking.turf_images) : booking.turf_images;
+                imageUrl = Array.isArray(parsed) ? (parsed[0]?.image_url || parsed[0]) : null;
+              } catch (e) { }
             }
             if (!imageUrl && booking.turf_image) {
-                imageUrl = booking.turf_image;
+              imageUrl = booking.turf_image;
             }
 
             return (
@@ -211,7 +201,6 @@ export default function BookingsScreen() {
                           {formatDate(booking.booking_date)}
                         </Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={14} color="#032221" />
                     </View>
 
                     <View className="flex-row items-center justify-between">
@@ -231,25 +220,41 @@ export default function BookingsScreen() {
                 {/* Action Buttons */}
                 <View className="flex-row gap-2 mt-3 pt-3 border-t border-gray-50">
                   {statusConfig.label === 'Upcoming' ? (
-                    <TouchableOpacity 
+                    <TouchableOpacity
+                      onPress={() => {
+                        router.push({
+                          pathname: `/(tabs)/book/${booking.turf_id}` as any,
+                          params: {
+                            turfData: JSON.stringify({
+                              id: booking.turf_id,
+                              name: booking.turf_name,
+                              price_per_hour: booking.total_price
+                            }),
+                            isReschedule: 'true',
+                            bookingId: booking.booking_id || booking.id
+                          }
+                        });
+                      }}
                       className="flex-1 flex-row items-center justify-center bg-[#E6F4EA] py-2.5 rounded-xl border border-[#03624C]/10"
                     >
                       <Ionicons name="calendar" size={14} color="#03624C" />
                       <Text className="ml-1.5 text-xs font-sans-bold text-[#03624C]">Reschedule</Text>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       className="flex-1 flex-row items-center justify-center bg-[#E6F4EA] py-2.5 rounded-xl border border-[#03624C]/10"
                     >
                       <Ionicons name="refresh" size={14} color="#03624C" />
                       <Text className="ml-1.5 text-xs font-sans-bold text-[#03624C]">Book Again</Text>
                     </TouchableOpacity>
                   )}
-                  
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     onPress={() => {
-                      // Navigate to details if needed
-                      // router.push(`/(tabs)/booking-details/${booking.booking_id}`)
+                      router.push({
+                        pathname: `/(tabs)/book/booking-details/${booking.id || booking.booking_id}` as any,
+                        params: { bookingData: JSON.stringify(booking) }
+                      });
                     }}
                     className="flex-1 flex-row items-center justify-center bg-[#E6F4EA] py-2.5 rounded-xl border border-[#03624C]/10"
                   >

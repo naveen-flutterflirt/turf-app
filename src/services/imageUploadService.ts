@@ -13,7 +13,7 @@ export const uploadImageToS3 = async (
     else if (extension === 'webp') contentType = 'image/webp';
 
     // 2. Request presigned URL
-    console.log(`[Upload] Requesting presigned URL for ${filename} (type: ${contentType})`);
+
     
     // Trying both possible endpoints since API spec says /api/upload but app uses /owner/turfs
     let presignResponse = await fetch(`${baseUrl}/owner/upload/presigned-url`, {
@@ -30,7 +30,7 @@ export const uploadImageToS3 = async (
     });
 
     if (presignResponse.status === 404) {
-      console.log(`[Upload] /owner endpoint 404. Falling back to /api/upload/presigned-url`);
+
       presignResponse = await fetch(`${baseUrl}/api/upload/presigned-url`, {
         method: 'POST',
         headers: {
@@ -52,7 +52,7 @@ export const uploadImageToS3 = async (
     }
 
     const result = await presignResponse.json();
-    console.log(`[Upload] Presigned URL response received:`, JSON.stringify(result));
+
     
     const { uploadUrl, fileUrl, key } = result.data || result;
 
@@ -62,7 +62,7 @@ export const uploadImageToS3 = async (
     }
 
     // 3. Upload to S3
-    console.log(`[Upload] Fetching local image blob from URI: ${imageUri}`);
+
     
     // Using XMLHttpRequest to reliably get the blob from a local URI in React Native
     const blob: any = await new Promise((resolve, reject) => {
@@ -79,7 +79,7 @@ export const uploadImageToS3 = async (
       xhr.send(null);
     });
 
-    console.log(`[Upload] Local blob size: ${blob.size} bytes. Starting PUT to S3...`);
+
 
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
@@ -89,7 +89,7 @@ export const uploadImageToS3 = async (
       body: blob,
     });
 
-    console.log(`[Upload] S3 PUT Response Status: ${uploadResponse.status} ${uploadResponse.statusText}`);
+
 
     if (!uploadResponse.ok) {
       const s3Error = await uploadResponse.text();
@@ -97,7 +97,7 @@ export const uploadImageToS3 = async (
       throw new Error(`S3 upload failed with status ${uploadResponse.status}: ${s3Error}`);
     }
 
-    console.log(`[Upload] SUCCESS! Image uploaded to S3. File URL: ${fileUrl}`);
+
 
     return {
       url: fileUrl,

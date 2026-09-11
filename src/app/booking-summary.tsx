@@ -106,7 +106,7 @@ export default function BookingSummaryScreen() {
         description: `Booking for ${turf.name}`,
         image: turf.images && turf.images.length > 0 ? turf.images[0].image_url : undefined,
         currency: currency,
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_TZ5ihZtkKXzxpl',
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_TYIPEgOrhunqOl',
         amount: amount,
         name: turf.name,
         order_id: orderId,
@@ -120,7 +120,7 @@ export default function BookingSummaryScreen() {
 
       try {
         const data = await RazorpayCheckout.open(options);
-        
+
         // Step 3: Verify payment with backend
         const verifyResponse = await fetch(`${baseUrl}/customer/bookings/verify-payment`, {
           method: 'POST',
@@ -300,45 +300,7 @@ export default function BookingSummaryScreen() {
           </View>
         </View>
 
-        {/* Payment Method */}
-        <View className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 p-5 shadow-sm" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
-          <View className="flex-row items-center mb-4">
-            <Ionicons name="wallet-outline" size={18} color="#032221" />
-            <Text className="ml-2 text-[15px] font-sans-bold text-[#032221]">Payment Method</Text>
-          </View>
 
-          <TouchableOpacity onPress={() => setPaymentMethod('razorpay')} className="flex-row items-center mb-4 py-2">
-            <Ionicons name={paymentMethod === 'razorpay' ? 'radio-button-on' : 'radio-button-off'} size={22} color={paymentMethod === 'razorpay' ? '#03624C' : '#D1D5DB'} />
-            <View className="w-6 h-6 ml-3 mr-2 bg-blue-50 rounded items-center justify-center">
-              <Ionicons name="card" size={14} color="#2563EB" />
-            </View>
-            <Text className="text-[14px] font-sans-bold text-[#032221]">Razorpay <Text className="font-sans-medium text-gray-500">(UPI, Cards, Net Banking)</Text></Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setPaymentMethod('upi')} className="flex-row items-center mb-4 py-2">
-            <Ionicons name={paymentMethod === 'upi' ? 'radio-button-on' : 'radio-button-off'} size={22} color={paymentMethod === 'upi' ? '#03624C' : '#D1D5DB'} />
-            <View className="w-6 h-6 ml-3 mr-2 bg-purple-50 rounded items-center justify-center">
-              <Ionicons name="phone-portrait" size={14} color="#9333EA" />
-            </View>
-            <Text className="text-[14px] font-sans-bold text-[#032221]">UPI <Text className="font-sans-medium text-gray-500">(Google Pay, PhonePe, Paytm)</Text></Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setPaymentMethod('card')} className="flex-row items-center mb-4 py-2">
-            <Ionicons name={paymentMethod === 'card' ? 'radio-button-on' : 'radio-button-off'} size={22} color={paymentMethod === 'card' ? '#03624C' : '#D1D5DB'} />
-            <View className="w-6 h-6 ml-3 mr-2 bg-gray-50 rounded items-center justify-center border border-gray-200">
-              <Ionicons name="card-outline" size={14} color="#4B5563" />
-            </View>
-            <Text className="text-[14px] font-sans-medium text-[#032221]">Credit / Debit Card</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setPaymentMethod('netbanking')} className="flex-row items-center py-2">
-            <Ionicons name={paymentMethod === 'netbanking' ? 'radio-button-on' : 'radio-button-off'} size={22} color={paymentMethod === 'netbanking' ? '#03624C' : '#D1D5DB'} />
-            <View className="w-6 h-6 ml-3 mr-2 bg-gray-50 rounded items-center justify-center border border-gray-200">
-              <Ionicons name="business-outline" size={14} color="#4B5563" />
-            </View>
-            <Text className="text-[14px] font-sans-medium text-[#032221]">Net Banking</Text>
-          </TouchableOpacity>
-        </View>
 
       </ScrollView>
 

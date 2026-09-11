@@ -5,13 +5,13 @@ export default function RootIndex() {
   const { hasSeenOnboarding, isAuthenticated, userRole } = useAppStore();
 
   // Force onboarding screen for testing
-  return <Redirect href="/(onboarding)" />;
-  
-  /*
+  // return <Redirect href="/(onboarding)" />;
+
+
   if (!hasSeenOnboarding) {
     return <Redirect href="/(onboarding)" />;
   }
-  */
+
 
   if (isAuthenticated) {
     if (userRole === 'OWNER') {

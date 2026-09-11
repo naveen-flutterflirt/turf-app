@@ -132,12 +132,12 @@ export default function TurfDetailsScreen() {
 
   const handleDelete = () => {
     showAlert(
-      'Deactivate Turf',
-      'Are you sure you want to deactivate and remove this turf?',
+      'Delete Turf',
+      'Are you sure you want to delete and remove this turf?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Deactivate',
+          text: 'delete',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -148,12 +148,49 @@ export default function TurfDetailsScreen() {
                 }
               });
               if (response.ok) {
-                showAlert('Success', 'Turf deactivated.');
+                showAlert('Success', 'Turf deleted.');
                 router.push('/(owner-tabs)/turfs');
               } else {
                 showAlert('Error', 'Failed to delete turf.');
               }
             } catch (err) {
+              showAlert('Error', 'Failed to connect to the server');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleToggleStatus = () => {
+    const isCurrentlyActive = turf.is_open !== false;
+    const newStatusLabel = isCurrentlyActive ? 'Deactivate' : 'Activate';
+
+    showAlert(
+      `${newStatusLabel} Turf`,
+      `Are you sure you want to ${newStatusLabel.toLowerCase()} this turf?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: newStatusLabel,
+          style: isCurrentlyActive ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              const response = await fetch(`${baseUrl}/owner/turfs/${id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${userData?.token}`
+                },
+                body: JSON.stringify({ is_open: !isCurrentlyActive })
+              });
+              if (response.ok) {
+                showAlert('Success', `Turf ${newStatusLabel.toLowerCase()}d successfully.`);
+                setTurf((prev: any) => ({ ...prev, is_open: !isCurrentlyActive }));
+              } else {
+                showAlert('Error', `Failed to ${newStatusLabel.toLowerCase()} turf.`);
+              }
+            } catch (err: any) {
               showAlert('Error', 'Failed to connect to the server');
             }
           }
@@ -205,11 +242,20 @@ export default function TurfDetailsScreen() {
                 <Text className="ml-2.5 font-sans-semibold text-gray-700 text-[13px]">Edit Turf</Text>
               </TouchableOpacity>
               <TouchableOpacity
+                className="px-4 py-3 flex-row items-center border-b border-gray-50"
+                onPress={() => { setShowMenu(false); handleToggleStatus(); }}
+              >
+                <Ionicons name={turf.is_open !== false ? "power" : "power-outline"} size={16} color={turf.is_open !== false ? "#DC2626" : "#03624C"} />
+                <Text className={`ml-2.5 font-sans-semibold text-[13px] ${turf.is_open !== false ? 'text-[#DC2626]' : 'text-[#03624C]'}`}>
+                  {turf.is_open !== false ? 'Deactivate' : 'Activate'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 className="px-4 py-3 flex-row items-center"
                 onPress={() => { setShowMenu(false); handleDelete(); }}
               >
-                <Ionicons name="pause-circle-outline" size={18} color="#DC2626" />
-                <Text className="ml-2.5 font-sans-semibold text-[#DC2626] text-[13px]">Deactivate</Text>
+                <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                <Text className="ml-2.5 font-sans-semibold text-[#DC2626] text-[13px]">Delete</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -271,18 +317,24 @@ export default function TurfDetailsScreen() {
               <Text className="text-[22px] font-sans-bold text-[#032221] leading-tight">{turf.name}</Text>
             </View>
             <View className={`px-2.5 py-1 rounded-full flex-row items-center mt-1 border ${(turf.status || 'ACTIVE').toUpperCase() === 'PENDING' ? 'bg-[#FEF9C3]/80 border-[#B08D23]/10' :
-                (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'bg-[#E6F4EA]/80 border-[#1E7B44]/10' :
-                  'bg-gray-100 border-gray-400/10'
+              (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'bg-[#E6F4EA]/80 border-[#1E7B44]/10' :
+                'bg-gray-100 border-gray-400/10'
               }`}>
               <View className={`w-1.5 h-1.5 rounded-full mr-1.5 ${(turf.status || 'ACTIVE').toUpperCase() === 'PENDING' ? 'bg-[#B08D23]' :
-                  (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'bg-[#1E7B44]' :
-                    'bg-gray-500'
+                (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'bg-[#1E7B44]' :
+                  'bg-gray-500'
                 }`} />
               <Text className={`text-[11px] font-sans-bold uppercase ${(turf.status || 'ACTIVE').toUpperCase() === 'PENDING' ? 'text-[#B08D23]' :
-                  (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'text-[#1E7B44]' :
-                    'text-gray-600'
+                (turf.status || 'ACTIVE').toUpperCase() === 'ACTIVE' ? 'text-[#1E7B44]' :
+                  'text-gray-600'
                 }`}>
                 {turf.status || 'ACTIVE'}
+              </Text>
+            </View>
+            <View className={`px-2.5 py-1 ml-2 rounded-full flex-row items-center mt-1 border ${turf.is_open !== false ? 'bg-[#E6F4EA]/80 border-[#A7F3D0]/30' : 'bg-[#FEE2E2]/80 border-[#FECACA]/30'}`}>
+              <Ionicons name={turf.is_open !== false ? 'checkmark-circle' : 'close-circle'} size={12} color={turf.is_open !== false ? '#1E7B44' : '#DC2626'} />
+              <Text className={`font-sans-bold text-[10px] ml-1 uppercase tracking-wide ${turf.is_open !== false ? 'text-[#1E7B44]' : 'text-[#DC2626]'}`}>
+                {turf.is_open !== false ? 'ACTIVE' : 'DEACTIVATED'}
               </Text>
             </View>
           </View>

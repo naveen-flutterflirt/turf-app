@@ -70,9 +70,8 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen name="book/[id]" options={{ href: null }} />
+      <Tabs.Screen name="book/booking-details/[id]" options={{ href: null }} />
       <Tabs.Screen name="cust-turf-details/[id]" options={{ href: null }} />
-      <Tabs.Screen name="booking-summary" options={{ href: null }} />
-      <Tabs.Screen name="booking-success" options={{ href: null }} />
       {/* We have moved turf-details/[id], book/[id], booking-summary, and booking-success 
             out of the tabs group into the root Stack to fix back navigation behavior */}
     </Tabs>
