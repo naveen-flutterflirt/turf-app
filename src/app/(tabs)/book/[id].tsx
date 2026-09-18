@@ -34,6 +34,18 @@ const formatSlotTime = (time: string) => {
   return `${hour.toString().padStart(2, '0')}:${m} ${ampm}`;
 };
 
+const getSportConfig = (sportName: string) => {
+  const name = sportName.toLowerCase();
+  if (name.includes('football') || name.includes('soccer')) return { icon: 'football', bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', color: '#1E7B44' };
+  if (name.includes('cricket')) return { icon: 'baseball', bg: 'bg-[#FFF4E5]', text: 'text-[#B06000]', color: '#B06000' };
+  if (name.includes('tennis')) return { icon: 'tennisball', bg: 'bg-[#F0FDF4]', text: 'text-[#166534]', color: '#166534' };
+  if (name.includes('basket')) return { icon: 'basketball', bg: 'bg-[#FFF7ED]', text: 'text-[#C2410C]', color: '#C2410C' };
+  if (name.includes('badminton')) return { icon: 'golf', bg: 'bg-[#F3E8FF]', text: 'text-[#6B21A8]', color: '#6B21A8' };
+  if (name.includes('swim')) return { icon: 'water', bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', color: '#1D4ED8' };
+  if (name.includes('table tennis') || name.includes('ping pong')) return { icon: 'tennisball-outline', bg: 'bg-[#FDF4FF]', text: 'text-[#86198F]', color: '#86198F' };
+  return { icon: 'trophy-outline', bg: 'bg-gray-100', text: 'text-gray-600', color: '#4B5563' };
+};
+
 export default function SelectSlotScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -46,11 +58,16 @@ export default function SelectSlotScreen() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]);
+  const [selectedSport, setSelectedSport] = useState<any>(null);
 
   useEffect(() => {
     if (turfData && typeof turfData === 'string') {
       try {
-        setTurf(JSON.parse(turfData));
+        const parsedTurf = JSON.parse(turfData);
+        setTurf(parsedTurf);
+        if (parsedTurf.sports && Array.isArray(parsedTurf.sports) && parsedTurf.sports.length > 0) {
+          setSelectedSport(parsedTurf.sports[0]);
+        }
       } catch (e) {
         console.error('Failed to parse turfData', e);
       }
@@ -60,24 +77,25 @@ export default function SelectSlotScreen() {
     setSelectedDate(generated[0]);
   }, [turfData]);
 
-  // Clear selected slots when date changes
+  // Clear selected slots when date or sport changes
   useEffect(() => {
     setSelectedSlots([]);
-  }, [selectedDate]);
+  }, [selectedDate, selectedSport]);
 
   const dateStr = selectedDate?.toISOString().split('T')[0];
 
   const { data: slotsData, isLoading: isLoadingSlots } = useQuery({
-    queryKey: ['slots', id, dateStr],
+    queryKey: ['slots', id, dateStr, selectedSport?.id],
     queryFn: async () => {
-      const response = await fetch(`${baseUrl}/customer/turfs/${id}/slots?date=${dateStr}`, {
+      const url = `${baseUrl}/customer/turfs/${id}/slots?date=${dateStr}${selectedSport?.id ? `&sport_id=${selectedSport.id}` : ''}`;
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${userData?.token}`
         }
       });
       return response.json();
     },
-    enabled: !!id && !!userData?.token && !!dateStr,
+    enabled: !!id && !!userData?.token && !!dateStr && !!selectedSport,
   });
 
   const slots = slotsData?.data || slotsData?.slots || (Array.isArray(slotsData) ? slotsData : []);
@@ -147,7 +165,8 @@ export default function SelectSlotScreen() {
       params: {
         turfData: JSON.stringify(turf),
         selectedDate: selectedDate?.toISOString(),
-        selectedSlots: JSON.stringify(selectedSlots)
+        selectedSlots: JSON.stringify(selectedSlots),
+        selectedSport: JSON.stringify(selectedSport)
       }
     });
   };
@@ -215,6 +234,34 @@ export default function SelectSlotScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+
+        {/* Sport Selector */}
+        {turf?.sports && Array.isArray(turf.sports) && turf.sports.length > 0 && (
+          <View className="bg-white pt-4 pb-2 border-b border-gray-50">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+              {turf.sports.map((sport: any, index: number) => {
+                const sportName = sport.name || sport;
+                const isSelected = selectedSport?.id === sport.id;
+                const config = getSportConfig(sportName);
+                
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => setSelectedSport(sport)}
+                    className={`flex-row items-center justify-center px-4 py-2 rounded-full mr-3 border ${isSelected ? 'bg-[#03624C] border-[#03624C]' : 'bg-white border-gray-200'}`}
+                  >
+                    <Ionicons 
+                      name={config.icon as any} 
+                      size={16} 
+                      color={isSelected ? '#FFFFFF' : config.color} 
+                    />
+                    <Text className={`ml-2 text-sm font-sans-medium ${isSelected ? 'text-white' : 'text-gray-600'}`}>{sportName}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Date Selector */}
         <View className="py-5 bg-white mb-2 shadow-sm" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}>

@@ -11,7 +11,7 @@ import { useAlert } from '../../../context/AlertContext';
 const getAmenitiesList = (amenitiesData: any): string[] => {
   if (!amenitiesData) return [];
   let arr: any[] = [];
-  
+
   if (Array.isArray(amenitiesData)) {
     arr = amenitiesData;
   } else if (typeof amenitiesData === 'string') {
@@ -50,6 +50,18 @@ const getTurfImageUris = (images: any): string[] => {
     }).filter(Boolean);
   }
   return [];
+};
+
+const getSportConfig = (sportName: string) => {
+  const name = sportName.toLowerCase();
+  if (name.includes('football') || name.includes('soccer')) return { icon: 'football', bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', color: '#1E7B44' };
+  if (name.includes('cricket')) return { icon: 'baseball', bg: 'bg-[#FFF4E5]', text: 'text-[#B06000]', color: '#B06000' };
+  if (name.includes('tennis')) return { icon: 'tennisball', bg: 'bg-[#F0FDF4]', text: 'text-[#166534]', color: '#166534' };
+  if (name.includes('basket')) return { icon: 'basketball', bg: 'bg-[#FFF7ED]', text: 'text-[#C2410C]', color: '#C2410C' };
+  if (name.includes('badminton')) return { icon: 'golf', bg: 'bg-[#F3E8FF]', text: 'text-[#6B21A8]', color: '#6B21A8' };
+  if (name.includes('swim')) return { icon: 'water', bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', color: '#1D4ED8' };
+  if (name.includes('table tennis') || name.includes('ping pong')) return { icon: 'tennisball-outline', bg: 'bg-[#FDF4FF]', text: 'text-[#86198F]', color: '#86198F' };
+  return { icon: 'trophy-outline', bg: 'bg-gray-100', text: 'text-gray-600', color: '#4B5563' };
 };
 
 export default function TurfDetailsScreen() {
@@ -198,7 +210,7 @@ export default function TurfDetailsScreen() {
           )}
 
           {/* Bottom Gradient Overlay & Pagination */}
-          <View className="absolute bottom-0 left-0 right-0 h-24 justify-end pb-10 px-4 pointer-events-none" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+          <View className="absolute bottom-0 left-0 right-0 h-24 justify-end pb-10 px-4 pointer-events-none">
             <View className="flex-row justify-between items-center">
               <View className="bg-black/50 rounded-full px-3 py-1">
                 <Text className="text-white font-sans-medium text-[11px]">{activeImageIndex + 1} / {totalImages}</Text>
@@ -229,15 +241,11 @@ export default function TurfDetailsScreen() {
           <View className="flex-row flex-wrap gap-2 mb-4">
             {Array.isArray(turf.sports) ? turf.sports.map((sport: any, index: number) => {
               const sportName = sport.name || sport;
-              const isFootball = sportName.toLowerCase() === 'football';
-              const isCricket = sportName.toLowerCase() === 'cricket';
-              const bgColor = isFootball ? 'bg-[#E6F4EA]/60' : (isCricket ? 'bg-[#FFF4E5]/70' : 'bg-gray-100');
-              const textColor = isFootball ? 'text-[#1E7B44]' : (isCricket ? 'text-[#B06000]' : 'text-gray-600');
-              const iconName = isFootball ? 'football' : (isCricket ? 'baseball' : 'trophy-outline');
+              const config = getSportConfig(sportName);
               return (
-                <View key={index} className={`${bgColor} px-3 py-1.5 rounded-xl flex-row items-center border border-transparent`}>
-                  <Ionicons name={iconName as any} size={14} color={isFootball ? '#1E7B44' : (isCricket ? '#B06000' : '#4B5563')} />
-                  <Text className={`font-sans-semibold text-xs ml-1.5 ${textColor}`}>{sportName}</Text>
+                <View key={index} className={`${config.bg} px-3 py-1.5 rounded-xl flex-row items-center border border-transparent`}>
+                  <Ionicons name={config.icon as any} size={14} color={config.color} />
+                  <Text className={`font-sans-semibold text-xs ml-1.5 ${config.text}`}>{sportName}</Text>
                 </View>
               );
             }) : (

@@ -8,7 +8,9 @@
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.turfcut.app",
+      "buildNumber": "1"
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -20,7 +22,9 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.turfcut.app",
-      "versionCode": 1
+      "versionCode": 6,
+      "usesCleartextTraffic": true,
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -37,7 +41,8 @@
         }
       ],
       "expo-status-bar",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@react-native-firebase/app"
     ],
     "experiments": {
       "typedRoutes": true,

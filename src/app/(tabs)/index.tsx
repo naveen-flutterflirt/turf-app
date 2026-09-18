@@ -15,6 +15,11 @@ export default function HomeScreen() {
   const userData = useAppStore((state) => state.userData);
   const userName = userData?.name ? userData.name.split(' ')[0] : 'Guest';
 
+  const cachedFeaturedTurfs = useAppStore((state) => state.cachedFeaturedTurfs);
+  const setCachedFeaturedTurfs = useAppStore((state) => state.setCachedFeaturedTurfs);
+  const cachedNearbyTurfs = useAppStore((state) => state.cachedNearbyTurfs);
+  const setCachedNearbyTurfs = useAppStore((state) => state.setCachedNearbyTurfs);
+
   const queryClient = useQueryClient();
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [cityName, setCityName] = useState('Locating...');
@@ -31,8 +36,9 @@ export default function HomeScreen() {
       return response.json();
     },
     enabled: !!userData?.token,
+    initialData: cachedFeaturedTurfs ? { data: cachedFeaturedTurfs } : undefined,
   });
-  const featuredTurfs = featuredTurfsResponse?.data || [];
+  const featuredTurfs = (featuredTurfsResponse?.data || []).filter((turf: any) => turf.is_featured);
 
   // Fetch Nearby Turfs using React Query (Depends on location)
   const { data: nearbyTurfsResponse, isLoading: isLoadingNearby } = useQuery({
@@ -44,8 +50,21 @@ export default function HomeScreen() {
       return response.json();
     },
     enabled: !!userData?.token && !!location,
+    initialData: cachedNearbyTurfs ? { data: cachedNearbyTurfs } : undefined,
   });
   const nearbyTurfs = nearbyTurfsResponse?.data || [];
+
+  React.useEffect(() => {
+    if (featuredTurfsResponse?.data) {
+      setCachedFeaturedTurfs(featuredTurfsResponse.data);
+    }
+  }, [featuredTurfsResponse?.data]);
+
+  React.useEffect(() => {
+    if (nearbyTurfsResponse?.data) {
+      setCachedNearbyTurfs(nearbyTurfsResponse.data);
+    }
+  }, [nearbyTurfsResponse?.data]);
 
   React.useEffect(() => {
     const fetchLocation = async () => {
@@ -56,7 +75,10 @@ export default function HomeScreen() {
         return;
       }
       try {
-        let loc = await Location.getCurrentPositionAsync({});
+        let loc = await Location.getLastKnownPositionAsync({});
+        if (!loc) {
+          loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        }
         setLocation(loc);
         let geocode = await Location.reverseGeocodeAsync({
           latitude: loc.coords.latitude,
@@ -120,12 +142,16 @@ export default function HomeScreen() {
             </View>
 
             <View className="items-end mt-1">
-              {/* <View className="flex-row items-center mb-1 relative">
-                <TouchableOpacity className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm mr-2 z-10">
+              <View className="flex-row items-center mb-1 relative">
+                <TouchableOpacity 
+                  onPress={() => router.push('/notifications')}
+                  className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm mr-2 z-10"
+                >
                   <Ionicons name="notifications-outline" size={22} color="#032221" />
+                  {/* Optional static unread dot for now */}
                   <View className="absolute right-2 top-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-white" />
                 </TouchableOpacity>
-              </View> */}
+              </View>
             </View>
           </View>
 

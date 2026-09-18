@@ -78,7 +78,10 @@ export default function AddTurfScreen() {
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
+      let location = await Location.getLastKnownPositionAsync({});
+      if (!location) {
+        location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      }
       setLatitude(location.coords.latitude);
       setLongitude(location.coords.longitude);
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../../context/ApiContext';
 import { useAppStore } from '../../stores/useAppStore';
+import FeedbackModal from '../../components/FeedbackModal';
 
 const formatDate = (isoString: string) => {
   if (!isoString) return '';
@@ -26,6 +27,19 @@ const formatTime = (time: string) => {
   return `${hour.toString().padStart(2, '0')}:${m} ${ampm}`;
 };
 
+const getSportConfig = (sportName: string) => {
+  if (!sportName) return { icon: 'trophy-outline', bg: 'bg-gray-100', text: 'text-gray-600', color: '#4B5563' };
+  const name = sportName.toLowerCase();
+  if (name.includes('football') || name.includes('soccer')) return { icon: 'football', bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', color: '#1E7B44' };
+  if (name.includes('cricket')) return { icon: 'baseball', bg: 'bg-[#FFF4E5]', text: 'text-[#B06000]', color: '#B06000' };
+  if (name.includes('tennis')) return { icon: 'tennisball', bg: 'bg-[#F0FDF4]', text: 'text-[#166534]', color: '#166534' };
+  if (name.includes('basket')) return { icon: 'basketball', bg: 'bg-[#FFF7ED]', text: 'text-[#C2410C]', color: '#C2410C' };
+  if (name.includes('badminton')) return { icon: 'golf', bg: 'bg-[#F3E8FF]', text: 'text-[#6B21A8]', color: '#6B21A8' };
+  if (name.includes('swim')) return { icon: 'water', bg: 'bg-[#EFF6FF]', text: 'text-[#1D4ED8]', color: '#1D4ED8' };
+  if (name.includes('table tennis') || name.includes('ping pong')) return { icon: 'tennisball-outline', bg: 'bg-[#FDF4FF]', text: 'text-[#86198F]', color: '#86198F' };
+  return { icon: 'trophy-outline', bg: 'bg-gray-100', text: 'text-gray-600', color: '#4B5563' };
+};
+
 export default function BookingsScreen() {
   const router = useRouter();
   const { baseUrl } = useApi();
@@ -34,6 +48,8 @@ export default function BookingsScreen() {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState('All');
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [selectedBookingForFeedback, setSelectedBookingForFeedback] = useState<any>(null);
 
   const { data: bookingsResponse, isLoading } = useQuery({
     queryKey: ['customerBookings'],
@@ -56,16 +72,17 @@ export default function BookingsScreen() {
     setIsRefreshing(false);
   };
 
-  const getFilteredBookings = () => {
+  const filteredBookings = useMemo(() => {
     return bookings.filter((b: any) => {
       const status = (b.status || '').toUpperCase();
-      const bookingDate = new Date(`${b.booking_date?.split('T')[0]}T${b.start_time || '00:00:00'}`);
+      // Use end_time to ensure the booking slot is fully over before marking it completed
+      const bookingEndDate = new Date(`${b.booking_date?.split('T')[0]}T${b.end_time || '23:59:00'}`);
       const now = new Date();
-      const isFuture = bookingDate >= now;
+      const isFuture = bookingEndDate >= now;
 
-      if (selectedTab === 'All') return status === 'CONFIRMED';
-      if (selectedTab === 'Upcoming') return status === 'CONFIRMED' && isFuture;
-      if (selectedTab === 'Completed') return status === 'CONFIRMED' && !isFuture;
+      if (selectedTab === 'All') return status === 'CONFIRMED' || status === 'COMPLETED';
+      if (selectedTab === 'Upcoming') return (status === 'CONFIRMED' || status === 'PAYMENT_PENDING') && isFuture;
+      if (selectedTab === 'Completed') return (status === 'CONFIRMED' || status === 'COMPLETED') && !isFuture;
       if (selectedTab === 'Cancelled') return status === 'CANCELLED';
 
       return status === 'CONFIRMED';
@@ -74,9 +91,7 @@ export default function BookingsScreen() {
       const dateB = new Date(`${b.booking_date?.split('T')[0]}T${b.start_time || '00:00:00'}`).getTime();
       return dateB - dateA; // Sort newest first
     });
-  };
-
-  const filteredBookings = getFilteredBookings();
+  }, [bookings, selectedTab]);
 
   const tabs = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
@@ -140,8 +155,8 @@ export default function BookingsScreen() {
           </View>
         ) : (
           filteredBookings.map((booking: any) => {
-            const bookingDate = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
-            const isFuture = bookingDate >= new Date();
+            const bookingEndDate = new Date(`${booking.booking_date?.split('T')[0]}T${booking.end_time || '23:59:00'}`);
+            const isFuture = bookingEndDate >= new Date();
             const statusConfig = getStatusConfig(booking.status || '', isFuture);
 
             // Get first image
@@ -194,6 +209,22 @@ export default function BookingsScreen() {
                       </Text>
                     </View>
 
+                    {(() => {
+                      const sportNameStr = booking.sport_name || (booking.sport && booking.sport.name) || (typeof booking.sport === 'string' ? booking.sport : null);
+                      if (!sportNameStr) return null;
+                      const config = getSportConfig(sportNameStr);
+                      return (
+                        <View className="flex-row items-center mb-1.5">
+                          <View className={`${config.bg} px-2 py-0.5 rounded-lg flex-row items-center border border-transparent`}>
+                            <Ionicons name={config.icon as any} size={11} color={config.color} />
+                            <Text className={`font-sans-semibold text-[10px] ml-1 ${config.text}`}>
+                              {sportNameStr}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })()}
+
                     <View className="flex-row items-center justify-between mb-1">
                       <View className="flex-row items-center">
                         <Ionicons name="calendar-outline" size={13} color="#6B7280" />
@@ -240,6 +271,17 @@ export default function BookingsScreen() {
                       <Ionicons name="calendar" size={14} color="#03624C" />
                       <Text className="ml-1.5 text-xs font-sans-bold text-[#03624C]">Reschedule</Text>
                     </TouchableOpacity>
+                  ) : statusConfig.label === 'Completed' ? (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedBookingForFeedback(booking);
+                        setFeedbackModalVisible(true);
+                      }}
+                      className="flex-1 flex-row items-center justify-center bg-[#FFFBEB] py-2.5 rounded-xl border border-[#F59E0B]/20"
+                    >
+                      <Ionicons name="star" size={14} color="#F59E0B" />
+                      <Text className="ml-1.5 text-xs font-sans-bold text-[#F59E0B]">Review</Text>
+                    </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
                       className="flex-1 flex-row items-center justify-center bg-[#E6F4EA] py-2.5 rounded-xl border border-[#03624C]/10"
@@ -267,6 +309,20 @@ export default function BookingsScreen() {
           })
         )}
       </ScrollView>
+
+      {/* Feedback Modal */}
+      {selectedBookingForFeedback && (
+        <FeedbackModal
+          visible={feedbackModalVisible}
+          onClose={() => {
+            setFeedbackModalVisible(false);
+            setSelectedBookingForFeedback(null);
+          }}
+          bookingId={selectedBookingForFeedback.id || selectedBookingForFeedback.booking_id}
+          turfId={selectedBookingForFeedback.turf_id}
+          onSuccess={handleRefresh}
+        />
+      )}
     </SafeAreaView>
   );
 }

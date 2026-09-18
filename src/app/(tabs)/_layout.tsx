@@ -1,9 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useAppStore } from '../../stores/useAppStore';
+import { useApi } from '../../context/ApiContext';
+import { initFCM, setupForegroundListener } from '../../services/fcmService';
 
 export default function TabLayout() {
+  const { baseUrl } = useApi();
+  const userData = useAppStore((state) => state.userData);
+
+  useEffect(() => {
+    if (userData?.token) {
+      initFCM(baseUrl, userData.token);
+      const unsubscribe = setupForegroundListener();
+      return () => unsubscribe();
+    }
+  }, [userData?.token, baseUrl]);
   return (
     <Tabs
       screenOptions={{

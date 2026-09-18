@@ -49,8 +49,8 @@ export default function CustomerLoginScreen() {
       } else {
         showAlert('Login Failed', data.message || 'Invalid credentials');
       }
-    } catch (error) {
-      showAlert('Error', 'Failed to connect to the server');
+    } catch (error: any) {
+      showAlert('Error', `Failed to connect. URL: ${baseUrl}. Error: ${error?.message || String(error)}`);
     } finally {
       setIsLoading(false);
     }

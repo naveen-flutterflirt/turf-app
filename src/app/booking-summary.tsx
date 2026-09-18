@@ -30,13 +30,14 @@ const formatTime = (time: string) => {
 export default function BookingSummaryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { turfData, selectedDate, selectedSlots } = useLocalSearchParams();
+  const { turfData, selectedDate, selectedSlots, selectedSport } = useLocalSearchParams();
   const { baseUrl } = useApi();
   const userData = useAppStore((state) => state.userData);
   const { showAlert } = useAlert();
 
   const [turf, setTurf] = useState<any>(null);
   const [slots, setSlots] = useState<any[]>([]);
+  const [sport, setSport] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
 
@@ -51,7 +52,12 @@ export default function BookingSummaryScreen() {
         setSlots(JSON.parse(selectedSlots));
       } catch (e) { }
     }
-  }, [turfData, selectedSlots]);
+    if (selectedSport && typeof selectedSport === 'string') {
+      try {
+        setSport(JSON.parse(selectedSport));
+      } catch (e) { }
+    }
+  }, [turfData, selectedSlots, selectedSport]);
 
   if (!turf || slots.length === 0) {
     return (
@@ -82,7 +88,8 @@ export default function BookingSummaryScreen() {
         body: JSON.stringify({
           turf_id: turf.id,
           date: bookingDate,
-          time_slots: timeSlotsPayload
+          time_slots: timeSlotsPayload,
+          ...(sport?.id && { sport_id: sport.id })
         })
       });
 
@@ -106,7 +113,8 @@ export default function BookingSummaryScreen() {
         description: `Booking for ${turf.name}`,
         image: turf.images && turf.images.length > 0 ? turf.images[0].image_url : undefined,
         currency: currency,
-        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_TYIPEgOrhunqOl',
+        // key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_TYIPEgOrhunqOl',
+        key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_TZ5ihZtkKXzxpl',
         amount: amount,
         name: turf.name,
         order_id: orderId,
@@ -217,6 +225,18 @@ export default function BookingSummaryScreen() {
 
         {/* Booking Details */}
         <View className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 p-5 shadow-sm" style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
+
+          {sport && (
+            <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row items-center">
+                <Ionicons name="trophy-outline" size={18} color="#6B7280" />
+                <Text className="ml-3 text-[15px] font-sans-medium text-gray-600">Sport</Text>
+              </View>
+              <Text className="text-[15px] font-sans-semibold text-[#032221]">
+                {sport.name || sport}
+              </Text>
+            </View>
+          )}
 
           <View className="flex-row justify-between items-center mb-4">
             <View className="flex-row items-center">

@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useApi } from '../../../../context/ApiContext';
 import { useAppStore } from '../../../../stores/useAppStore';
 import * as Clipboard from 'expo-clipboard';
+import FeedbackModal from '../../../../components/FeedbackModal';
 
 const formatDate = (isoString: string) => {
   if (!isoString) return '';
@@ -47,6 +48,7 @@ export default function CustomerBookingDetailsScreen() {
 
   const [booking, setBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
 
   useEffect(() => {
     if (bookingData && typeof bookingData === 'string') {
@@ -141,6 +143,9 @@ export default function CustomerBookingDetailsScreen() {
 
   if (!booking) return null;
 
+  const bookingEndDate = new Date(`${booking.booking_date?.split('T')[0]}T${booking.end_time || '23:59:00'}`);
+  const isFuture = bookingEndDate >= new Date();
+
   const status = (booking.status || 'CONFIRMED').toUpperCase();
   let statusConfig = { bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', label: 'CONFIRMED' };
 
@@ -148,12 +153,11 @@ export default function CustomerBookingDetailsScreen() {
     statusConfig = { bg: 'bg-[#FEF9C3]', text: 'text-[#B08D23]', label: 'PAYMENT PENDING' };
   } else if (status === 'CANCELLED') {
     statusConfig = { bg: 'bg-[#FEE2E2]', text: 'text-[#DC2626]', label: 'CANCELLED' };
+  } else if (status === 'CONFIRMED' && !isFuture) {
+    statusConfig = { bg: 'bg-[#E0F2FE]', text: 'text-[#0284C7]', label: 'COMPLETED' };
   }
 
   const isPaid = booking.razorpay_payment_id != null && booking.status !== 'CANCELLED';
-  
-  const bookingDate = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
-  const isFuture = bookingDate >= new Date();
   const canCancel = (status === 'CONFIRMED' || status === 'PAYMENT_PENDING' || status === 'PENDING') && isFuture;
 
   // Extract first image
@@ -292,6 +296,20 @@ export default function CustomerBookingDetailsScreen() {
                 <Text className="font-sans-bold text-[#032221] text-base">Payment Summary</Text>
               </View>
 
+              {(booking.sport_name || (booking.sport && booking.sport.name) || (typeof booking.sport === 'string' ? booking.sport : null)) && (
+                <View className="flex-row justify-between items-center py-4 border-b border-gray-50">
+                  <View className="flex-row items-center">
+                    <View className="w-8 h-8 rounded-full bg-[#F3F4F6] items-center justify-center">
+                      <Ionicons name="trophy-outline" size={16} color="#6B7280" />
+                    </View>
+                    <Text className="ml-3 font-sans-medium text-gray-600">Sport</Text>
+                  </View>
+                  <Text className="font-sans-bold text-[#032221]">
+                    {booking.sport_name || (booking.sport && booking.sport.name) || booking.sport}
+                  </Text>
+                </View>
+              )}
+
               <View className="flex-row justify-between items-center mb-4 border-b border-gray-50 pb-4">
                 <View className="flex-row items-center">
                   <Ionicons name="cash-outline" size={16} color="#032221" />
@@ -352,9 +370,31 @@ export default function CustomerBookingDetailsScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Leave Review Button */}
+            {statusConfig.label === 'COMPLETED' && (
+              <TouchableOpacity
+                onPress={() => setFeedbackModalVisible(true)}
+                className="w-full bg-[#FFFBEB] border border-[#F59E0B]/30 rounded-xl py-4 flex-row items-center justify-center mb-6 shadow-sm"
+              >
+                <Ionicons name="star" size={20} color="#F59E0B" />
+                <Text className="text-[#F59E0B] font-sans-bold text-base ml-2">Review Your Experience</Text>
+              </TouchableOpacity>
+            )}
+
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      <FeedbackModal
+        visible={feedbackModalVisible}
+        onClose={() => setFeedbackModalVisible(false)}
+        bookingId={booking.id || booking.booking_id}
+        turfId={booking.turf_id}
+        onSuccess={() => {
+          // Could optionally refresh booking details if feedback was attached
+          fetchBookingDetails();
+        }}
+      />
     </View>
   );
 }

@@ -125,8 +125,8 @@ export default function VerifyEmailScreen() {
                 return (
                   <View
                     key={index}
-                    className={`w-[45px] h-14 rounded-xl items-center justify-center border ${digit ? 'border-primary-dark bg-[#E6F4EA]/50' : isFocused ? 'border-[#03624C] bg-white' : 'border-gray-200 bg-white'}`}
-                    style={{ elevation: digit ? 2 : 0, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}
+                    className={`w-[45px] h-14 rounded-xl items-center justify-center border ${digit ? 'border-primary-dark bg-[#E6F4EA]' : isFocused ? 'border-[#03624C] bg-white' : 'border-gray-200 bg-white'}`}
+                    style={{ elevation: digit ? 1 : 0, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
                   >
                     <Text className={`text-xl font-sans-bold ${digit ? 'text-primary-dark' : 'text-[#032221]'}`}>{digit}</Text>
                   </View>
