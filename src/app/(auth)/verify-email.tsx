@@ -53,7 +53,7 @@ export default function VerifyEmailScreen() {
         if (data.token) {
           useAppStore.getState().login(role as 'CUSTOMER' | 'OWNER', data);
           if (role === 'OWNER') {
-            router.replace('/(owner-tabs)');
+            router.replace('/(owner-tabs)/edit-bank-details');
           } else {
             router.replace('/(tabs)');
           }

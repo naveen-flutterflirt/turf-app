@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
@@ -11,7 +11,20 @@ import { uploadImageToS3 } from '../../../services/imageUploadService';
 import { useAppStore } from '../../../stores/useAppStore';
 import { useAlert } from '../../../context/AlertContext';
 
-const SPORTS_OPTIONS = ['Football', 'Cricket', 'Tennis', 'Basketball'];
+const SPORTS_OPTIONS = [
+  'Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton'
+];
+
+const SportIcon = ({ sport, size, color }: { sport: string, size: number, color: string }) => {
+  switch (sport) {
+    case 'Football': return <Ionicons name="football" size={size} color={color} />;
+    case 'Cricket': return <Ionicons name="baseball" size={size} color={color} />;
+    case 'Tennis': return <Ionicons name="tennisball" size={size} color={color} />;
+    case 'Basketball': return <Ionicons name="basketball" size={size} color={color} />;
+    case 'Badminton': return <MaterialCommunityIcons name="badminton" size={size} color={color} />;
+    default: return <Ionicons name="trophy-outline" size={size} color={color} />;
+  }
+};
 
 export default function EditTurfScreen() {
   const { showAlert } = useAlert();
@@ -23,6 +36,8 @@ export default function EditTurfScreen() {
   const [images, setImages] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [showOtherSportInput, setShowOtherSportInput] = useState(false);
+  const [otherSportInput, setOtherSportInput] = useState('');
   const [amenityInput, setAmenityInput] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [address, setAddress] = useState('');
@@ -45,7 +60,12 @@ export default function EditTurfScreen() {
       if (typeof parsedSports === 'string') {
         try { parsedSports = JSON.parse(parsedSports); } catch(e) {}
       }
-      setSelectedSports(Array.isArray(parsedSports) ? parsedSports : []);
+
+      let loadedSports: string[] = [];
+      if (Array.isArray(parsedSports)) {
+        loadedSports = parsedSports.map((s: any) => typeof s === 'object' ? s.name || s.title || String(s) : String(s));
+      }
+      setSelectedSports(loadedSports);
       
       let loadedAmenities: string[] = [];
       if (Array.isArray(turf.amenities)) {
@@ -162,6 +182,14 @@ export default function EditTurfScreen() {
       setSelectedSports(selectedSports.filter(s => s !== sport));
     } else {
       setSelectedSports([...selectedSports, sport]);
+    }
+  };
+
+  const handleAddOtherSport = () => {
+    const s = otherSportInput.trim();
+    if (s && !selectedSports.includes(s)) {
+      setSelectedSports([...selectedSports, s]);
+      setOtherSportInput('');
     }
   };
 
@@ -306,7 +334,7 @@ export default function EditTurfScreen() {
                   </View>
                 );
               })}
-              {images.length < 10 && (
+              {images.length < 5 && (
                 <TouchableOpacity
                   onPress={pickImage}
                   className="w-16 h-16 rounded-xl border border-gray-300 items-center justify-center bg-gray-50"
@@ -338,16 +366,58 @@ export default function EditTurfScreen() {
                     onPress={() => toggleSport(sport)}
                     className={`flex-row items-center border rounded-xl px-4 py-2 ${isSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
                   >
-                    <Ionicons
-                      name={sport === 'Football' ? 'football' : sport === 'Cricket' ? 'baseball' : sport === 'Tennis' ? 'tennisball' : 'basketball'}
-                      size={18}
-                      color={isSelected ? '#03624C' : '#9CA3AF'}
-                    />
+                    <SportIcon sport={sport} size={18} color={isSelected ? '#03624C' : '#9CA3AF'} />
                     <Text className={`ml-2 font-sans-medium text-sm ${isSelected ? 'text-primary' : 'text-gray-500'}`}>{sport}</Text>
                   </TouchableOpacity>
                 );
               })}
+
+              {selectedSports.filter(s => {
+                const name = typeof s === 'object' ? (s as any).name || (s as any).title || String(s) : String(s);
+                return !SPORTS_OPTIONS.includes(name);
+              }).map((sport, index) => {
+                  const sportName = typeof sport === 'object' ? (sport as any).name || (sport as any).title || String(sport) : String(sport);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => toggleSport(sportName)}
+                      className={`flex-row items-center border rounded-xl px-4 py-2 border-primary bg-primary/5`}
+                    >
+                      <Ionicons
+                        name="trophy-outline"
+                        size={18}
+                        color="#03624C"
+                      />
+                      <Text className={`ml-2 font-sans-medium text-sm text-primary`}>{sportName}</Text>
+                    </TouchableOpacity>
+                  );
+              })}
+
+              <TouchableOpacity
+                onPress={() => setShowOtherSportInput(!showOtherSportInput)}
+                className={`flex-row items-center border rounded-xl px-4 py-2 ${showOtherSportInput ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={showOtherSportInput ? '#03624C' : '#9CA3AF'} />
+                <Text className={`ml-2 font-sans-medium text-sm ${showOtherSportInput ? 'text-primary' : 'text-gray-500'}`}>Others</Text>
+              </TouchableOpacity>
             </View>
+
+            {showOtherSportInput && (
+              <View className="flex-row items-center gap-2 mt-3">
+                <TextInput
+                  value={otherSportInput}
+                  onChangeText={setOtherSportInput}
+                  placeholder="Enter sport name"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-sans-medium text-turf-text"
+                />
+                <TouchableOpacity 
+                  onPress={handleAddOtherSport}
+                  className="bg-[#03624C] px-6 py-3.5 rounded-xl items-center justify-center"
+                >
+                  <Text className="font-sans-bold text-white">Add</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           <View className="mb-4">

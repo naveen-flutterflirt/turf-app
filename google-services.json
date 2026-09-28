@@ -12,7 +12,52 @@
           "package_name": "com.turfcut.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1090732856735-7seuc80m7mp9bu5ra10rkck0gvq3nera.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.turfcut.app",
+            "certificate_hash": "4a237a0c080a740def750461b33426b6728b6c7c"
+          }
+        },
+        {
+          "client_id": "1090732856735-b02teqnasp0ik2s7fdbiipg5moh1711k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.turfcut.app",
+            "certificate_hash": "b421f5b3afa51650284f0e8be158d37b63445177"
+          }
+        },
+        {
+          "client_id": "1090732856735-gktbu4ld2qhb6bj5h5t5iij486668e91.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.turfcut.app",
+            "certificate_hash": "c5930f6413ef43c93b946028b5572eaed7939eea"
+          }
+        },
+        {
+          "client_id": "1090732856735-ohpt6g6p190pvu1jcoojrroi857momf7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.turfcut.app",
+            "certificate_hash": "8c1b44a3fed36c042452f12cac6c61a2f3bc4082"
+          }
+        },
+        {
+          "client_id": "1090732856735-v9egg6si8b6rghiaaocubqjneral4503.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.turfcut.app",
+            "certificate_hash": "7f53d7ebbf2f756d6f44417fe870ae83f31b43fc"
+          }
+        },
+        {
+          "client_id": "1090732856735-b6flsagu6ielg7q7b7ac8guknn36aj6v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCWONdB0HvEEWMcMJEUxlskmdH4Fxquio4"
@@ -20,7 +65,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1090732856735-4mfrodeh15igjitpl7ha56uvmd31pa0h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

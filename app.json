@@ -10,7 +10,8 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.turfcut.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "associatedDomains": ["applinks:turf-admin-dashboard-six.vercel.app"]
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -22,9 +23,22 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.turfcut.app",
-      "versionCode": 6,
+      "versionCode": 10,
       "usesCleartextTraffic": true,
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "turf-admin-dashboard-six.vercel.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -35,18 +49,34 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#ffffff",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 400
         }
       ],
       "expo-status-bar",
       "@react-native-community/datetimepicker",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true
+          }
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      "./withRazorpayFix"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/22c8d222-f2f1-40d8-8181-55935eee24c4"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "extra": {
       "router": {},

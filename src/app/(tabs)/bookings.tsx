@@ -253,13 +253,17 @@ export default function BookingsScreen() {
                   {statusConfig.label === 'Upcoming' ? (
                     <TouchableOpacity
                       onPress={() => {
+                        const sportNameStr = booking.sport_name || (booking.sport && booking.sport.name) || (typeof booking.sport === 'string' ? booking.sport : 'Sport');
+                        const sportId = booking.sport_id || (booking.sport && booking.sport.id);
+
                         router.push({
                           pathname: `/(tabs)/book/${booking.turf_id}` as any,
                           params: {
                             turfData: JSON.stringify({
                               id: booking.turf_id,
                               name: booking.turf_name,
-                              price_per_hour: booking.total_price
+                              price_per_hour: booking.total_price,
+                              sports: [{ id: sportId, name: sportNameStr }]
                             }),
                             isReschedule: 'true',
                             bookingId: booking.booking_id || booking.id

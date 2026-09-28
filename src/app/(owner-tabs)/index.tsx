@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAppStore } from '../../stores/useAppStore';
 import { useApi } from '../../context/ApiContext';
+import { BarChart } from 'react-native-gifted-charts';
 
 const formatDate = (isoString: string) => {
   if (!isoString) return '';
@@ -34,9 +35,10 @@ export default function OwnerDashboardScreen() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   const fetchDashboard = async (isRefresh = false) => {
-    if (!isRefresh) setIsLoading(true);
+    if (!isRefresh && !hasFetchedRef.current) setIsLoading(true);
     try {
       const response = await fetch(`${baseUrl}/owner/dashboard`, {
         headers: {
@@ -46,6 +48,7 @@ export default function OwnerDashboardScreen() {
       const data = await response.json();
       if (response.ok && data.success) {
         setDashboardData(data.data);
+        hasFetchedRef.current = true;
       }
     } catch (error) {
       console.error(error);
@@ -167,6 +170,62 @@ export default function OwnerDashboardScreen() {
 
               </View>
 
+              {/* Revenue Chart Section */}
+              <View className="px-6 mb-6 mt-2">
+                <View className="flex-row justify-between items-end mb-3">
+                  <Text className="text-lg font-sans-bold text-turf-text">Weekly Revenue</Text>
+                  {/* <Text className="text-xs font-sans-medium text-gray-500">View All {'>'}</Text> */}
+                </View>
+                <View className="bg-white rounded-2xl pt-6 pb-2 pr-2 border border-gray-100 shadow-sm" style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}>
+                  <BarChart
+                    data={dashboardData?.weekly_earnings?.map((item: any) => ({
+                      value: item.value,
+                      label: item.label,
+                      frontColor: '#34A853'
+                    })) || []}
+                    height={150}
+                    disableScroll={true}
+                    barWidth={26}
+                    spacing={14}
+                    barBorderRadius={4}
+                    xAxisThickness={1}
+                    xAxisColor="#F3F4F6"
+                    yAxisThickness={0}
+                    yAxisTextStyle={{ color: '#9CA3AF', fontSize: 10 }}
+                    xAxisLabelTextStyle={{ color: '#9CA3AF', fontSize: 10, textAlign: 'center' }}
+                    noOfSections={3}
+                    maxValue={(() => {
+                      const max = Math.max(...(dashboardData?.weekly_earnings?.map((d: any) => d.value) || []), 0);
+                      return max > 0 ? max * 1.2 : 100; // Scale dynamically, default to 100 if empty
+                    })()}
+                    rulesColor="#F3F4F6"
+                    initialSpacing={6}
+                    formatYLabel={(label) => {
+                      const val = parseInt(label);
+                      if (val === 0) return '0';
+                      return val >= 1000 ? `${(val / 1000).toFixed(1).replace('.0', '')}K` : `${val}`;
+                    }}
+                    renderTooltip={(item: any) => {
+                      return (
+                        <View
+                          style={{
+                            marginBottom: 8,
+                            marginLeft: -10,
+                            backgroundColor: '#03624C',
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            borderRadius: 6,
+                          }}>
+                          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                            ₹{item.value.toLocaleString()}
+                          </Text>
+                        </View>
+                      );
+                    }}
+                  />
+                </View>
+              </View>
+
               {/* Recent Bookings Header */}
               <View className="px-6 flex-row justify-between items-center mb-4">
                 <Text className="text-lg font-sans-bold text-turf-text">Recent Bookings</Text>
@@ -177,16 +236,30 @@ export default function OwnerDashboardScreen() {
 
               {/* Recent Bookings List */}
               <View className="px-6">
-                {!dashboardData?.recent_bookings || dashboardData.recent_bookings.filter((b: any) => (b.status || 'CONFIRMED').toUpperCase() === 'CONFIRMED').length === 0 ? (
-                  <View className="items-center justify-center py-6">
-                    <Text className="text-gray-500 font-sans-medium">No recent confirmed bookings found.</Text>
-                  </View>
-                ) : (
-                  dashboardData.recent_bookings
-                    .filter((booking: any) => (booking.status || 'CONFIRMED').toUpperCase() === 'CONFIRMED')
-                    .map((booking: any) => {
-                      const status = (booking.status || 'CONFIRMED').toUpperCase();
-                    let statusConfig = { bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', label: 'CONFIRMED' };
+                {(() => {
+                  const completedBookings = (dashboardData?.recent_bookings || []).filter((booking: any) => {
+                    const status = (booking.status || '').toUpperCase();
+                    return status === 'COMPLETED' || status === 'CONFIRMED';
+                  });
+
+                  if (completedBookings.length === 0) {
+                    return (
+                      <View className="items-center justify-center py-6">
+                        <Text className="text-gray-500 font-sans-medium">No recent completed bookings found.</Text>
+                      </View>
+                    );
+                  }
+
+                  return completedBookings.map((booking: any) => {
+                    const status = (booking.status || 'CONFIRMED').toUpperCase();
+                    const bookingDateTime = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
+                    const isCompleted = status === 'COMPLETED' || (status === 'CONFIRMED' && bookingDateTime < new Date());
+
+                    let statusConfig = { 
+                      bg: isCompleted ? 'bg-[#F3F4F6]' : 'bg-[#E8F5EE]', 
+                      text: isCompleted ? 'text-[#4B5563]' : 'text-[#03624C]', 
+                      label: isCompleted ? 'COMPLETED' : 'CONFIRMED' 
+                    };
 
                     if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
                       statusConfig = { bg: 'bg-[#FEF9C3]', text: 'text-[#B08D23]', label: 'PAYMENT PENDING' };
@@ -225,8 +298,8 @@ export default function OwnerDashboardScreen() {
                         </View>
                       </TouchableOpacity>
                     );
-                  })
-                )}
+                  });
+                })()}
               </View>
             </>
           )}

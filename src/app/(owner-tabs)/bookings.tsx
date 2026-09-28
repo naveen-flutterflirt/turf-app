@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, TextInput, RefreshControl, Platform, Modal } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export default function OwnerBookingsScreen() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   const uniqueTurfs = Array.from(new Set(bookings.map(b => b.turf_id)))
     .map(id => {
@@ -58,12 +59,12 @@ export default function OwnerBookingsScreen() {
 
   const fetchBookings = async (pageToFetch = 1, isRefresh = false) => {
     if (isRefresh) {
-      setIsLoading(true);
+      if (!hasFetchedRef.current && bookings.length === 0) setIsLoading(true);
       setPage(1);
     } else if (pageToFetch > 1) {
       setIsFetchingMore(true);
     } else {
-      setIsLoading(true);
+      if (!hasFetchedRef.current && bookings.length === 0) setIsLoading(true);
     }
 
     try {
@@ -75,6 +76,7 @@ export default function OwnerBookingsScreen() {
       const data = await response.json();
       if (response.ok && data.success) {
         setTotalPages(data.meta?.total_pages || 1);
+        hasFetchedRef.current = true;
         
         const validBookings = (data.data || []).filter((b: any) => {
           const status = (b.status || '').toUpperCase();
@@ -158,8 +160,8 @@ export default function OwnerBookingsScreen() {
       const isFuture = bookingDate >= now;
 
       if (tab === 'All') return true;
-      if (tab === 'Upcoming') return (status === 'CONFIRMED' || status === 'PAYMENT_PENDING') && isFuture;
-      if (tab === 'Completed') return status === 'CONFIRMED' && !isFuture;
+      if (tab === 'Upcoming') return (status === 'CONFIRMED' || status === 'PAYMENT_PENDING') && isFuture && status !== 'COMPLETED';
+      if (tab === 'Completed') return (status === 'CONFIRMED' && !isFuture) || status === 'COMPLETED';
       if (tab === 'Cancelled') return status === 'CANCELLED';
 
       return true;
@@ -185,8 +187,8 @@ export default function OwnerBookingsScreen() {
       const isFuture = bookingDate >= now;
 
       if (tab === 'All') return true;
-      if (tab === 'Upcoming') return (status === 'CONFIRMED' || status === 'PAYMENT_PENDING') && isFuture;
-      if (tab === 'Completed') return status === 'CONFIRMED' && !isFuture;
+      if (tab === 'Upcoming') return (status === 'CONFIRMED' || status === 'PAYMENT_PENDING') && isFuture && status !== 'COMPLETED';
+      if (tab === 'Completed') return (status === 'CONFIRMED' && !isFuture) || status === 'COMPLETED';
       if (tab === 'Cancelled') return status === 'CANCELLED';
       return true;
     }).length;
@@ -318,7 +320,14 @@ export default function OwnerBookingsScreen() {
             ) : (
               filteredBookings.map((booking) => {
                 const status = (booking.status || 'CONFIRMED').toUpperCase();
-                let statusConfig = { bg: 'bg-[#E6F4EA]', text: 'text-[#1E7B44]', label: 'CONFIRMED' };
+                const bookingDateTime = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
+                const isCompleted = status === 'COMPLETED' || (status === 'CONFIRMED' && bookingDateTime < new Date());
+
+                let statusConfig = { 
+                  bg: isCompleted ? 'bg-[#F3F4F6]' : 'bg-[#E8F5EE]', 
+                  text: isCompleted ? 'text-[#4B5563]' : 'text-[#03624C]', 
+                  label: isCompleted ? 'COMPLETED' : 'CONFIRMED' 
+                };
 
                 if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
                   statusConfig = { bg: 'bg-[#FEF9C3]', text: 'text-[#B08D23]', label: 'PAYMENT PENDING' };

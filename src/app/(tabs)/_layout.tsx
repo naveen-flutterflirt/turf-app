@@ -5,10 +5,14 @@ import { Platform } from 'react-native';
 import { useAppStore } from '../../stores/useAppStore';
 import { useApi } from '../../context/ApiContext';
 import { initFCM, setupForegroundListener } from '../../services/fcmService';
+import { useGlobalSocket } from '../../hooks/useGlobalSocket';
 
 export default function TabLayout() {
   const { baseUrl } = useApi();
   const userData = useAppStore((state) => state.userData);
+
+  // Initialize Global Socket for real-time notifications
+  useGlobalSocket();
 
   useEffect(() => {
     if (userData?.token) {
@@ -65,11 +69,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="favorites"
+        name="community"
         options={{
-          title: 'Favorites',
+          title: 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'heart' : 'heart-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
           ),
         }}
       />

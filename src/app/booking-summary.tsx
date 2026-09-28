@@ -8,6 +8,7 @@ import { useApi } from '../context/ApiContext';
 import { useAppStore } from '../stores/useAppStore';
 import { useAlert } from '../context/AlertContext';
 import RazorpayCheckout from 'react-native-razorpay';
+import { getTurfImageUri } from '../utils/imageHelper';
 
 const formatDate = (isoString: string) => {
   if (!isoString) return '';
@@ -111,7 +112,7 @@ export default function BookingSummaryScreen() {
       // Step 2: Open Razorpay Checkout Modal
       const options = {
         description: `Booking for ${turf.name}`,
-        image: turf.images && turf.images.length > 0 ? turf.images[0].image_url : undefined,
+        image: getTurfImageUri(turf.images) || undefined,
         currency: currency,
         // key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_live_TYIPEgOrhunqOl',
         key: process.env.EXPO_PUBLIC_RAZORPAY_KEY || 'rzp_test_TZ5ihZtkKXzxpl',
@@ -175,10 +176,7 @@ export default function BookingSummaryScreen() {
   };
 
   // Get first image
-  let imageUrl = null;
-  if (turf.images && turf.images.length > 0) {
-    imageUrl = turf.images[0].image_url || turf.images[0].url || turf.images[0].uri;
-  }
+  const imageUrl = getTurfImageUri(turf.images) || null;
 
   // Format Time Range for display
   const startTime = slots.length > 0 ? slots[0].start : '';

@@ -6,6 +6,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../stores/useAppStore';
 import { useApi } from '../../context/ApiContext';
+import { LogoutModal } from '../../components/ui/LogoutModal';
 
 export default function OwnerProfileScreen() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function OwnerProfileScreen() {
   const [name, setName] = useState(userData?.name || '');
   const [email, setEmail] = useState(userData?.email || '');
   const [phone, setPhone] = useState(userData?.phone || '');
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [businessName, setBusinessName] = useState(userData?.business_name || '');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -62,6 +64,11 @@ export default function OwnerProfileScreen() {
   );
 
   const handleLogout = () => {
+    setIsLogoutModalVisible(true);
+  };
+
+  const confirmLogout = () => {
+    setIsLogoutModalVisible(false);
     logout();
     router.replace('/(auth)/role-selection');
   };
@@ -138,8 +145,23 @@ export default function OwnerProfileScreen() {
             </View>
           </View>
 
-          {/* Support & Queries Button */}
+          {/* Bank Account Details Button */}
           <View className="mt-6 bg-white border-y border-gray-100">
+            <TouchableOpacity 
+              onPress={() => router.push('/(owner-tabs)/bank-details')}
+              className="flex-row items-center px-6 py-4"
+            >
+              <Ionicons name="card-outline" size={22} color="#03624C" className="mr-4" />
+              <View className="flex-1 ml-4">
+                <Text className="font-sans-semibold text-[15px] text-[#032221]">Bank Account Details</Text>
+                <Text className="font-sans-medium text-[13px] text-gray-500 mt-0.5">Manage your payout account</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#D1D5DB" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Support & Queries Button */}
+          <View className="bg-white border-b border-gray-100">
             <TouchableOpacity 
               onPress={() => router.push('/(owner-tabs)/queries')}
               className="flex-row items-center px-6 py-4"
@@ -177,70 +199,78 @@ export default function OwnerProfileScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setIsEditModalVisible(false)}
       >
-        <KeyboardAvoidingView 
-          className="flex-1 bg-white" 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-            <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-              <Text className="text-gray-500 font-sans-medium text-base">Cancel</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-sans-bold text-[#032221]">Edit Profile</Text>
-            <TouchableOpacity onPress={handleSave} disabled={isLoading}>
-              {isLoading ? (
-                <ActivityIndicator size="small" color="#03624C" />
-              ) : (
-                <Text className="text-[#03624C] font-sans-bold text-base">Save</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
-            <View className="mb-5">
-              <Text className="text-sm font-sans-medium text-gray-600 mb-2">Full Name</Text>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
-                placeholder="Enter your name"
-              />
+        <SafeAreaView className="flex-1 bg-white">
+          <KeyboardAvoidingView 
+            className="flex-1 bg-white" 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
+              <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
+                <Text className="text-gray-500 font-sans-medium text-base">Cancel</Text>
+              </TouchableOpacity>
+              <Text className="text-lg font-sans-bold text-[#032221]">Edit Profile</Text>
+              <TouchableOpacity onPress={handleSave} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#03624C" />
+                ) : (
+                  <Text className="text-[#03624C] font-sans-bold text-base">Save</Text>
+                )}
+              </TouchableOpacity>
             </View>
 
-            <View className="mb-5">
-              <Text className="text-sm font-sans-medium text-gray-600 mb-2">Business Name</Text>
-              <TextInput
-                value={businessName}
-                onChangeText={setBusinessName}
-                className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
-                placeholder="Enter business name"
-              />
-            </View>
+            <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
+              <View className="mb-5">
+                <Text className="text-sm font-sans-medium text-gray-600 mb-2">Full Name</Text>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter your name"
+                />
+              </View>
 
-            <View className="mb-5">
-              <Text className="text-sm font-sans-medium text-gray-600 mb-2">Email</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
-                placeholder="Enter your email"
-              />
-            </View>
+              <View className="mb-5">
+                <Text className="text-sm font-sans-medium text-gray-600 mb-2">Business Name</Text>
+                <TextInput
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                  className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter business name"
+                />
+              </View>
 
-            <View className="mb-8">
-              <Text className="text-sm font-sans-medium text-gray-600 mb-2">Phone Number</Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
-                placeholder="Enter phone number"
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+              <View className="mb-5">
+                <Text className="text-sm font-sans-medium text-gray-600 mb-2">Email</Text>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter your email"
+                />
+              </View>
+
+              <View className="mb-8">
+                <Text className="text-sm font-sans-medium text-gray-600 mb-2">Phone Number</Text>
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  className="bg-gray-50 rounded-xl px-4 py-3.5 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter phone number"
+                />
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
+
+      <LogoutModal 
+        visible={isLogoutModalVisible}
+        onClose={() => setIsLogoutModalVisible(false)}
+        onConfirm={confirmLogout}
+      />
 
     </View>
   );

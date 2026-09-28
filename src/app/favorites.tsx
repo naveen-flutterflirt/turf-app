@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { useAppStore } from '../../stores/useAppStore';
-import { useApi } from '../../context/ApiContext';
+import { useAppStore } from '../stores/useAppStore';
+import { useApi } from '../context/ApiContext';
+import { getTurfImageUri } from '../utils/imageHelper';
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -49,13 +50,17 @@ export default function FavoritesScreen() {
       <View className="absolute top-0 right-0 w-[250px] h-[250px] bg-[#E8F5EE] rounded-bl-[150px] opacity-60" />
 
       <SafeAreaView className="flex-1">
-        <View className="px-6 pt-4 pb-6 z-10">
-          <Text className="text-[28px] font-sans-bold text-[#032221] mb-1 leading-tight">
-            Favorites
-          </Text>
-          <Text className="text-sm font-sans-medium text-gray-500">
-            Turfs you've saved for later
-          </Text>
+        <View className="px-6 pt-4 pb-6 z-10 flex flex-row ">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm mb-4"
+          >
+            <Ionicons name="arrow-back" size={24} color="#032221" />
+          </TouchableOpacity>
+          <View className="ml-3">
+            <Text className="text-xl font-sans-bold text-[#032221] mt-1.5">
+              Favorites
+            </Text></View>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -90,8 +95,8 @@ export default function FavoritesScreen() {
                 >
                   {/* Left Side: Image */}
                   <View className="w-[120px] h-[120px] bg-gray-200 rounded-xl relative overflow-hidden mr-4">
-                    {turf.images && turf.images.length > 0 ? (
-                      <Image source={{ uri: turf.images[0].image_url }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
+                    {getTurfImageUri(turf.images) ? (
+                      <Image source={{ uri: getTurfImageUri(turf.images) }} className="absolute inset-0 w-full h-full" resizeMode="cover" />
                     ) : (
                       <View className="absolute inset-0 bg-[#032221]/10" />
                     )}

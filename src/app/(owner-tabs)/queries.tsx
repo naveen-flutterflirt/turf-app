@@ -25,7 +25,7 @@ export default function QueriesScreen() {
 
   const fetchQueries = useCallback(async (showLoader = true) => {
     if (!userData?.token) return;
-    if (showLoader) setIsLoading(true);
+    if (showLoader && queries.length === 0) setIsLoading(true);
     
     try {
       const response = await fetch(`${baseUrl}/owner/queries`, {

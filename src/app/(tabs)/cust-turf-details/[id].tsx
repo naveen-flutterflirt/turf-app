@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,28 @@ const getAmenitiesList = (amenitiesData: any): string[] => {
     if (item && typeof item === 'object') return item.name || item.title || String(item);
     return String(item);
   }).filter(Boolean);
+};
+
+const getSportsList = (sportsData: any): any[] => {
+  if (!sportsData) return [];
+  let arr: any[] = [];
+
+  if (Array.isArray(sportsData)) {
+    arr = sportsData;
+  } else if (typeof sportsData === 'string') {
+    try {
+      const parsed = JSON.parse(sportsData);
+      arr = Array.isArray(parsed) ? parsed : [sportsData];
+    } catch (e) {
+      if (sportsData.includes(',')) {
+        arr = sportsData.split(',').map((item: string) => item.trim()).filter(Boolean);
+      } else {
+        arr = [sportsData];
+      }
+    }
+  }
+
+  return arr;
 };
 
 const getTurfImageUris = (images: any): string[] => {
@@ -78,6 +100,18 @@ export default function TurfDetailsScreen() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const insets = useSafeAreaInsets();
 
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const headerOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(headerOpacity, {
+      toValue: isHeaderVisible ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [isHeaderVisible]);
+
   const isFavorite = favorites.includes(id as string);
 
   const formatTime = (time: string) => {
@@ -96,7 +130,9 @@ export default function TurfDetailsScreen() {
       showAlert('Error', 'Location coordinates not available for this turf.');
       return;
     }
-    const url = `https://www.google.com/maps/search/?api=1&query=${turf.latitude},${turf.longitude}`;
+    const url = Platform.OS === 'ios' 
+      ? `http://maps.apple.com/?daddr=${turf.latitude},${turf.longitude}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${turf.latitude},${turf.longitude}`;
     Linking.openURL(url).catch(() => {
       showAlert('Error', 'Could not open the map.');
     });
@@ -167,7 +203,14 @@ export default function TurfDetailsScreen() {
       <StatusBar style="light" />
 
       {/* Floating Top Nav */}
-      <View className="absolute top-0 left-0 right-0 px-4 flex-row justify-between items-center z-50 pointer-events-box-none" style={{ paddingTop: insets.top + 10 }}>
+      <Animated.View 
+        className="absolute top-0 left-0 right-0 px-4 flex-row justify-between items-center z-50" 
+        pointerEvents={isHeaderVisible ? "box-none" : "none"}
+        style={{ 
+          paddingTop: insets.top + 10, 
+          opacity: headerOpacity,
+          transform: [{ translateY: headerOpacity.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
+        }}>
         <TouchableOpacity onPress={() => router.push("/(tabs)/search")} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100" style={{ elevation: 2 }}>
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
@@ -176,9 +219,27 @@ export default function TurfDetailsScreen() {
         <TouchableOpacity onPress={() => toggleFavorite(id as string)} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100" style={{ elevation: 2 }}>
           <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={20} color={isFavorite ? "#EF4444" : "#000"} />
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }} bounces={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 120 }} 
+        bounces={false}
+        onScroll={(e) => {
+          const currentScrollY = e.nativeEvent.contentOffset.y;
+          if (currentScrollY <= 0) {
+            setIsHeaderVisible(true);
+            lastScrollY.current = 0;
+          } else if (currentScrollY > lastScrollY.current + 15) {
+            setIsHeaderVisible(false);
+            lastScrollY.current = currentScrollY;
+          } else if (currentScrollY < lastScrollY.current - 15) {
+            setIsHeaderVisible(true);
+            lastScrollY.current = currentScrollY;
+          }
+        }}
+        scrollEventThrottle={16}
+      >
 
         {/* Header Image */}
         <View className="h-[300px] w-full relative bg-gray-200">
@@ -239,7 +300,7 @@ export default function TurfDetailsScreen() {
 
           {/* Sports Pills */}
           <View className="flex-row flex-wrap gap-2 mb-4">
-            {Array.isArray(turf.sports) ? turf.sports.map((sport: any, index: number) => {
+            {getSportsList(turf?.sports).length > 0 ? getSportsList(turf?.sports).map((sport: any, index: number) => {
               const sportName = sport.name || sport;
               const config = getSportConfig(sportName);
               return (
@@ -332,9 +393,20 @@ export default function TurfDetailsScreen() {
       </ScrollView>
 
       {/* Fixed Bottom Booking Button */}
-      <View className="absolute bg-white bottom-0 left-0 right-0  px-6 py-4">
+      <View className="absolute bg-white bottom-0 left-0 right-0 px-6 py-4 flex-row gap-3">
         <TouchableOpacity
-          className="bg-[#03624C] w-full rounded-2xl py-4 items-center flex-row justify-center"
+          className="bg-[#E8F5EE] border border-[#03624C]/20 flex-1 rounded-2xl py-4 items-center flex-row justify-center"
+          onPress={() => router.push({
+            pathname: '/create-broadcast' as any,
+            params: { turfData: JSON.stringify(turf) }
+          })}
+        >
+          <Text className="text-[#03624C] font-sans-bold text-base mr-2">Find Peoples</Text>
+          <Ionicons name="people" size={18} color="#03624C" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-[#03624C] flex-1 rounded-2xl py-4 items-center flex-row justify-center"
           onPress={() => router.push({
             pathname: `/book/${turf.id}` as any,
             params: { turfData: JSON.stringify(turf) }

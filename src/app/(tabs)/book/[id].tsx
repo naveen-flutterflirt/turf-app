@@ -64,6 +64,17 @@ export default function SelectSlotScreen() {
     if (turfData && typeof turfData === 'string') {
       try {
         const parsedTurf = JSON.parse(turfData);
+        if (parsedTurf.sports && typeof parsedTurf.sports === 'string') {
+          try {
+            parsedTurf.sports = JSON.parse(parsedTurf.sports);
+          } catch (e) {
+            if (parsedTurf.sports.includes(',')) {
+              parsedTurf.sports = parsedTurf.sports.split(',').map((s: string) => s.trim()).filter(Boolean);
+            } else {
+              parsedTurf.sports = [parsedTurf.sports];
+            }
+          }
+        }
         setTurf(parsedTurf);
         if (parsedTurf.sports && Array.isArray(parsedTurf.sports) && parsedTurf.sports.length > 0) {
           setSelectedSport(parsedTurf.sports[0]);
@@ -127,7 +138,7 @@ export default function SelectSlotScreen() {
       const slot = selectedSlots[0];
       
       const response = await fetch(`${baseUrl}/customer/bookings/${bookingId}/reschedule`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${userData?.token}`,
           'Content-Type': 'application/json'
@@ -135,12 +146,23 @@ export default function SelectSlotScreen() {
         body: JSON.stringify({
           date: dateStr,
           start_time: slot.start,
-          end_time: slot.end
+          end_time: slot.end,
+          sport_id: selectedSport?.id,
+          turf_id: id
         })
       });
       
-      const data = await response.json();
-      if (response.ok && data.success) {
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        Alert.alert('Error', `Server returned an invalid response (${response.status}). Please try again.`);
+        console.error('Non-JSON response:', text);
+        return;
+      }
+
+      if (response.ok && data.success !== false) {
         Alert.alert('Success', 'Booking rescheduled successfully!');
         router.push('/(tabs)/bookings');
       } else {

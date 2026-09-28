@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAppStore } from '../../stores/useAppStore';
 import { useApi } from '../../context/ApiContext';
+import { LogoutModal } from '../../components/ui/LogoutModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -20,7 +21,19 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState(userData?.phone || '');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+
   const handleLogout = () => {
+    setIsLogoutModalVisible(true);
+  };
+
+  const confirmLogout = () => {
+    setIsLogoutModalVisible(false);
     logout();
     router.replace('/(auth)/role-selection');
   };
@@ -100,6 +113,52 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill all password fields');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setIsPasswordLoading(true);
+    try {
+      const response = await fetch(`${baseUrl}/customer/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData?.token}`,
+        },
+        body: JSON.stringify({ 
+          current_password: currentPassword, 
+          new_password: newPassword 
+        }),
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        Alert.alert('Success', 'Password changed successfully');
+        setIsChangingPassword(false);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setIsPasswordLoading(false);
+    }
+  };
+
   const handleEditPress = () => {
     setIsEditing(true);
     setName(userData?.name || '');
@@ -121,23 +180,23 @@ export default function ProfileScreen() {
     >
       <StatusBar style="dark" />
       <SafeAreaView className="flex-1">
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-          
-          {/* Header */}
-          <View className="flex-row justify-between items-center py-4">
-            <View className="flex-row items-center">
-              <Text className="text-2xl font-sans-bold text-[#032221] mr-3">Profile</Text>
-            </View>
-            {!isEditing ? (
-              <TouchableOpacity onPress={handleEditPress}>
-                <Text className="text-[#03624C] font-sans-bold">Edit</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity onPress={handleCancelPress}>
-                <Text className="text-gray-500 font-sans-bold">Cancel</Text>
-              </TouchableOpacity>
-            )}
+        {/* Fixed Header */}
+        <View className="flex-row justify-between items-center py-4 px-6">
+          <View className="flex-row items-center">
+            <Text className="text-2xl font-sans-bold text-[#032221] mr-3">Profile</Text>
           </View>
+          {!isEditing ? (
+            <TouchableOpacity onPress={handleEditPress}>
+              <Text className="text-[#03624C] font-sans-bold">Edit</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handleCancelPress}>
+              <Text className="text-gray-500 font-sans-bold">Cancel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
           {/* Profile Card */}
           <View className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6 items-center">
@@ -212,6 +271,23 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           )}
 
+          {/* Security Section */}
+          <View className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-6">
+            <Text className="text-sm font-sans-bold text-[#032221] mb-4">Security</Text>
+            <TouchableOpacity 
+              className="flex-row items-center justify-between py-2"
+              onPress={() => setIsChangingPassword(true)}
+            >
+              <View className="flex-row items-center">
+                <View className="w-8 h-8 rounded-full bg-orange-50 items-center justify-center mr-3">
+                  <Ionicons name="lock-closed-outline" size={16} color="#F97316" />
+                </View>
+                <Text className="text-sm font-sans-medium text-[#032221]">Change Password</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+
           {!isEditing && (
             <TouchableOpacity 
               onPress={handleLogout}
@@ -223,6 +299,82 @@ export default function ProfileScreen() {
           )}
           
         </ScrollView>
+
+        {/* Change Password Modal */}
+        <Modal
+          visible={isChangingPassword}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsChangingPassword(false)}
+        >
+          <View className="flex-1 justify-end bg-black/50">
+            <View className="bg-white rounded-t-[32px] p-6 pb-10 shadow-lg">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-xl font-sans-bold text-[#032221]">Change Password</Text>
+                <TouchableOpacity onPress={() => {
+                  setIsChangingPassword(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}>
+                  <Ionicons name="close-circle" size={28} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-xs font-sans-medium text-gray-500 mb-1">Current Password</Text>
+                <TextInput
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  secureTextEntry
+                  className="bg-gray-50 rounded-xl px-4 py-3 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter current password"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-xs font-sans-medium text-gray-500 mb-1">New Password</Text>
+                <TextInput
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry
+                  className="bg-gray-50 rounded-xl px-4 py-3 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Enter new password (min. 6 chars)"
+                />
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-xs font-sans-medium text-gray-500 mb-1">Confirm New Password</Text>
+                <TextInput
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry
+                  className="bg-gray-50 rounded-xl px-4 py-3 font-sans-medium text-[#032221] border border-gray-200"
+                  placeholder="Re-enter new password"
+                />
+              </View>
+
+              <TouchableOpacity 
+                onPress={handleChangePassword}
+                disabled={isPasswordLoading}
+                className={`w-full rounded-xl py-4 items-center ${isPasswordLoading ? 'bg-[#03624C]/70' : 'bg-[#03624C]'}`}
+              >
+                {isPasswordLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-sans-bold text-base">Update Password</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <LogoutModal 
+          visible={isLogoutModalVisible}
+          onClose={() => setIsLogoutModalVisible(false)}
+          onConfirm={confirmLogout}
+        />
+
       </SafeAreaView>
     </KeyboardAvoidingView>
   );

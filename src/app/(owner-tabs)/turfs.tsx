@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -62,6 +62,7 @@ export default function OwnerTurfsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('Active');
+  const hasFetchedRef = useRef(false);
 
   const handleDelete = (id: string) => {
     showAlert(
@@ -97,7 +98,7 @@ export default function OwnerTurfsScreen() {
 
 
   const fetchTurfs = async (isRefresh = false) => {
-    if (!isRefresh) setIsLoading(true);
+    if (!isRefresh && !hasFetchedRef.current) setIsLoading(true);
     try {
       const response = await fetch(`${baseUrl}/owner/turfs`, {
         headers: {
@@ -113,6 +114,7 @@ export default function OwnerTurfsScreen() {
       if (response.ok) {
         let parsedTurfs = data.turfs || data.data || data;
         setTurfs(Array.isArray(parsedTurfs) ? parsedTurfs : []);
+        hasFetchedRef.current = true;
       } else {
         showAlert('Error', data.message || 'Failed to load turfs');
       }

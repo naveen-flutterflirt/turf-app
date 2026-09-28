@@ -1,16 +1,42 @@
-// @ts-ignore - The module works at runtime but TS definitions sometimes lack default export
-import messaging from '@react-native-firebase/messaging';
 import { Platform } from 'react-native';
 
+let getMessaging: any = null;
+let AuthorizationStatus: any = null;
+
+try {
+  // Using require inside try-catch prevents the app from crashing in Expo Go
+  // where native Firebase modules are not registered.
+  const fbm = require('@react-native-firebase/messaging');
+  getMessaging = fbm.getMessaging;
+  AuthorizationStatus = fbm.AuthorizationStatus;
+} catch (e) {
+  console.warn('Firebase Messaging native module not found. Push notifications will not work in this environment (e.g., Expo Go).');
+}
+
+// Register background handler early to silence the warning
+if (getMessaging) {
+  try {
+    getMessaging().setBackgroundMessageHandler(async (remoteMessage: any) => {
+      console.log('Message handled in the background!', remoteMessage?.messageId);
+    });
+  } catch (e) {
+    // Ignore if messaging isn't ready
+  }
+}
+
 export const initFCM = async (baseUrl: string, userToken: string) => {
-  if (!userToken) return;
+  if (!userToken || !getMessaging) return;
 
   try {
+    const messaging = getMessaging();
+    
     // 1. Request Permission (Required for iOS, Android 13+)
-    const authStatus = await messaging().requestPermission();
+    const authStatus = await messaging.requestPermission();
+    
+    // AuthorizationStatus.AUTHORIZED is 1, PROVISIONAL is 2
     const enabled =
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      authStatus === AuthorizationStatus?.AUTHORIZED ||
+      authStatus === AuthorizationStatus?.PROVISIONAL;
 
     if (!enabled) {
       console.log('FCM Permission denied');
@@ -18,7 +44,7 @@ export const initFCM = async (baseUrl: string, userToken: string) => {
     }
 
     // 2. Get the token
-    const fcmToken = await messaging().getToken();
+    const fcmToken = await messaging.getToken();
     if (fcmToken) {
       console.log('FCM Token generated:', fcmToken);
 
@@ -48,8 +74,23 @@ export const initFCM = async (baseUrl: string, userToken: string) => {
 
 // Handle foreground messages
 export const setupForegroundListener = () => {
-  return messaging().onMessage(async (remoteMessage: any) => {
+  if (!getMessaging) {
+    // Return a dummy unsubscribe function
+    return () => {};
+  }
+  
+  const messaging = getMessaging();
+  return messaging.onMessage(async (remoteMessage: any) => {
     console.log('A new FCM message arrived in the foreground!', JSON.stringify(remoteMessage));
-    // TODO: You can hook this into AlertProvider or toast notifications later if needed.
+    
+    // Show an alert so the user actually sees the notification while the app is open!
+    if (remoteMessage?.notification) {
+      const { title, body } = remoteMessage.notification;
+      if (title || body) {
+        // Need to import Alert from react-native at the top or use it directly here
+        const { Alert } = require('react-native');
+        Alert.alert(title || 'New Notification', body || '');
+      }
+    }
   });
 };

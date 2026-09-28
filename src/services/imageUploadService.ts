@@ -15,8 +15,7 @@ export const uploadImageToS3 = async (
     // 2. Request presigned URL
 
     
-    // Trying both possible endpoints since API spec says /api/upload but app uses /owner/turfs
-    let presignResponse = await fetch(`${baseUrl}/owner/upload/presigned-url`, {
+    const presignResponse = await fetch(`${baseUrl}/upload/presigned-url`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,22 +27,6 @@ export const uploadImageToS3 = async (
         folder: 'turf-images',
       }),
     });
-
-    if (presignResponse.status === 404) {
-
-      presignResponse = await fetch(`${baseUrl}/api/upload/presigned-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          fileName: filename,
-          contentType: contentType,
-          folder: 'turf-images',
-        }),
-      });
-    }
 
     if (!presignResponse.ok) {
       const errorText = await presignResponse.text();

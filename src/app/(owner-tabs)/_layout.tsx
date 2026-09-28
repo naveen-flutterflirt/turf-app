@@ -76,6 +76,8 @@ export default function OwnerTabLayout() {
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="booking-details/[id]" options={{ href: null }} />
       <Tabs.Screen name="queries" options={{ href: null }} />
+      <Tabs.Screen name="bank-details" options={{ href: null }} />
+      <Tabs.Screen name="edit-bank-details" options={{ href: null }} />
     </Tabs>
   );
 }

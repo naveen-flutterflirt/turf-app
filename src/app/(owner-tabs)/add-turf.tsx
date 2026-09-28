@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Image, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useApi } from '../../context/ApiContext';
@@ -11,7 +11,20 @@ import { uploadImageToS3 } from '../../services/imageUploadService';
 import { useAppStore } from '../../stores/useAppStore';
 import { useAlert } from '../../context/AlertContext';
 
-const SPORTS_OPTIONS = ['Football', 'Cricket', 'Tennis', 'Basketball'];
+const SPORTS_OPTIONS = [
+  'Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton'
+];
+
+const SportIcon = ({ sport, size, color }: { sport: string, size: number, color: string }) => {
+  switch (sport) {
+    case 'Football': return <Ionicons name="football" size={size} color={color} />;
+    case 'Cricket': return <Ionicons name="baseball" size={size} color={color} />;
+    case 'Tennis': return <Ionicons name="tennisball" size={size} color={color} />;
+    case 'Basketball': return <Ionicons name="basketball" size={size} color={color} />;
+    case 'Badminton': return <MaterialCommunityIcons name="badminton" size={size} color={color} />;
+    default: return <Ionicons name="trophy-outline" size={size} color={color} />;
+  }
+};
 
 export default function AddTurfScreen() {
   const { showAlert } = useAlert();
@@ -22,6 +35,8 @@ export default function AddTurfScreen() {
   const [images, setImages] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [showOtherSportInput, setShowOtherSportInput] = useState(false);
+  const [otherSportInput, setOtherSportInput] = useState('');
   const [amenityInput, setAmenityInput] = useState('');
   const [amenities, setAmenities] = useState<string[]>([]);
   const [address, setAddress] = useState('');
@@ -34,9 +49,30 @@ export default function AddTurfScreen() {
   const [price, setPrice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Clear form when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setImages([]);
+      setName('');
+      setSelectedSports([]);
+      setShowOtherSportInput(false);
+      setOtherSportInput('');
+      setAmenityInput('');
+      setAmenities([]);
+      setAddress('');
+      setCity('');
+      setStateName('');
+      setPincode('');
+      setLatitude(null);
+      setLongitude(null);
+      setPrice('');
+      setIsLoading(false);
+    }, [])
+  );
+
   const pickImage = async () => {
-    if (images.length >= 10) {
-      showAlert('Limit Reached', 'You can only upload up to 10 images.');
+    if (images.length >= 5) {
+      showAlert('Limit Reached', 'You can only upload up to 5 images.');
       return;
     }
 
@@ -98,6 +134,14 @@ export default function AddTurfScreen() {
       setSelectedSports(selectedSports.filter(s => s !== sport));
     } else {
       setSelectedSports([...selectedSports, sport]);
+    }
+  };
+
+  const handleAddOtherSport = () => {
+    const s = otherSportInput.trim();
+    if (s && !selectedSports.includes(s)) {
+      setSelectedSports([...selectedSports, s]);
+      setOtherSportInput('');
     }
   };
 
@@ -192,7 +236,7 @@ export default function AddTurfScreen() {
               <Ionicons name="images-outline" size={24} color="#03624C" />
             </View>
             <Text className="font-sans-bold text-turf-text text-sm">Upload Photos</Text>
-            <Text className="font-sans-medium text-gray-500 text-xs mt-1 mb-4">Add photos of your turf (Max 10 images, &lt; 5MB each)</Text>
+            <Text className="font-sans-medium text-gray-500 text-xs mt-1 mb-4">Add photos of your turf (Max 5 images, &lt; 5MB each)</Text>
 
             <View className="flex-row flex-wrap justify-center w-full gap-2 mt-2">
               {images.map((imgObj, index) => {
@@ -211,7 +255,7 @@ export default function AddTurfScreen() {
                   </View>
                 );
               })}
-              {images.length < 10 && (
+              {images.length < 5 && (
                 <TouchableOpacity
                   onPress={pickImage}
                   className="w-16 h-16 rounded-xl border border-gray-300 items-center justify-center bg-gray-50"
@@ -244,16 +288,52 @@ export default function AddTurfScreen() {
                     onPress={() => toggleSport(sport)}
                     className={`flex-row items-center border rounded-xl px-4 py-2 ${isSelected ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
                   >
-                    <Ionicons
-                      name={sport === 'Football' ? 'football' : sport === 'Cricket' ? 'baseball' : sport === 'Tennis' ? 'tennisball' : 'basketball'}
-                      size={18}
-                      color={isSelected ? '#03624C' : '#9CA3AF'}
-                    />
+                    <SportIcon sport={sport} size={18} color={isSelected ? '#03624C' : '#9CA3AF'} />
                     <Text className={`ml-2 font-sans-medium text-sm ${isSelected ? 'text-primary' : 'text-gray-500'}`}>{sport}</Text>
                   </TouchableOpacity>
                 );
               })}
+
+              {selectedSports.filter(s => !SPORTS_OPTIONS.includes(s)).map(sport => (
+                  <TouchableOpacity
+                    key={sport}
+                    onPress={() => toggleSport(sport)}
+                    className={`flex-row items-center border rounded-xl px-4 py-2 border-primary bg-primary/5`}
+                  >
+                    <Ionicons
+                      name="trophy-outline"
+                      size={18}
+                      color="#03624C"
+                    />
+                    <Text className={`ml-2 font-sans-medium text-sm text-primary`}>{sport}</Text>
+                  </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                onPress={() => setShowOtherSportInput(!showOtherSportInput)}
+                className={`flex-row items-center border rounded-xl px-4 py-2 ${showOtherSportInput ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={showOtherSportInput ? '#03624C' : '#9CA3AF'} />
+                <Text className={`ml-2 font-sans-medium text-sm ${showOtherSportInput ? 'text-primary' : 'text-gray-500'}`}>Others</Text>
+              </TouchableOpacity>
             </View>
+
+            {showOtherSportInput && (
+              <View className="flex-row items-center gap-2 mt-3">
+                <TextInput
+                  value={otherSportInput}
+                  onChangeText={setOtherSportInput}
+                  placeholder="Enter sport name"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-sans-medium text-turf-text"
+                />
+                <TouchableOpacity 
+                  onPress={handleAddOtherSport}
+                  className="bg-[#03624C] px-6 py-3.5 rounded-xl items-center justify-center"
+                >
+                  <Text className="font-sans-bold text-white">Add</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           <View className="mb-4">

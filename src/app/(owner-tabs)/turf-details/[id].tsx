@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,28 @@ const getAmenitiesList = (amenitiesData: any): string[] => {
     return parsed.map((a: any) => typeof a === 'object' ? a.name || a.title || String(a) : String(a));
   }
   return [String(parsed)];
+};
+
+const getSportsList = (sportsData: any): any[] => {
+  if (!sportsData) return [];
+  let arr: any[] = [];
+
+  if (Array.isArray(sportsData)) {
+    arr = sportsData;
+  } else if (typeof sportsData === 'string') {
+    try {
+      const parsed = JSON.parse(sportsData);
+      arr = Array.isArray(parsed) ? parsed : [sportsData];
+    } catch (e) {
+      if (sportsData.includes(',')) {
+        arr = sportsData.split(',').map((item: string) => item.trim()).filter(Boolean);
+      } else {
+        arr = [sportsData];
+      }
+    }
+  }
+
+  return arr;
 };
 
 
@@ -61,6 +83,18 @@ export default function TurfDetailsScreen() {
   const [showMenu, setShowMenu] = useState(false);
   const insets = useSafeAreaInsets();
 
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const headerOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(headerOpacity, {
+      toValue: isHeaderVisible ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [isHeaderVisible]);
+
   const formatTime = (time: string) => {
     if (!time) return '';
     const [h, m] = time.split(':');
@@ -77,7 +111,9 @@ export default function TurfDetailsScreen() {
       showAlert('Error', 'Location coordinates not available for this turf.');
       return;
     }
-    const url = `https://www.google.com/maps/search/?api=1&query=${turf.latitude},${turf.longitude}`;
+    const url = Platform.OS === 'ios'
+      ? `http://maps.apple.com/?daddr=${turf.latitude},${turf.longitude}`
+      : `https://www.google.com/maps/dir/?api=1&destination=${turf.latitude},${turf.longitude}`;
     Linking.openURL(url).catch(() => {
       showAlert('Error', 'Could not open the map.');
     });
@@ -224,7 +260,14 @@ export default function TurfDetailsScreen() {
       )}
 
       {/* Floating Top Nav */}
-      <View className="absolute top-0 left-0 right-0 px-4 flex-row justify-between items-center z-50 pointer-events-box-none" style={{ paddingTop: insets.top + 10 }}>
+      <Animated.View 
+        className="absolute top-0 left-0 right-0 px-4 flex-row justify-between items-center z-50" 
+        pointerEvents={isHeaderVisible ? "box-none" : "none"}
+        style={{ 
+          paddingTop: insets.top + 10, 
+          opacity: headerOpacity,
+          transform: [{ translateY: headerOpacity.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
+        }}>
         <TouchableOpacity onPress={() => router.push('/(owner-tabs)/turfs')} className="w-10 h-10 bg-white rounded-full items-center justify-center shadow-sm border border-gray-100" style={{ elevation: 2 }}>
           <Ionicons name="chevron-back" size={24} color="#000" />
         </TouchableOpacity>
@@ -260,9 +303,28 @@ export default function TurfDetailsScreen() {
             </View>
           )}
         </View>
-      </View>
+      </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }} bounces={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: 40 }} 
+        bounces={false}
+        onScroll={(e) => {
+          const currentScrollY = e.nativeEvent.contentOffset.y;
+          if (currentScrollY <= 0) {
+            setIsHeaderVisible(true);
+            lastScrollY.current = 0;
+          } else if (currentScrollY > lastScrollY.current + 15) {
+            setIsHeaderVisible(false);
+            if (showMenu) setShowMenu(false); // Also hide dropdown if they scroll down while it's open
+            lastScrollY.current = currentScrollY;
+          } else if (currentScrollY < lastScrollY.current - 15) {
+            setIsHeaderVisible(true);
+            lastScrollY.current = currentScrollY;
+          }
+        }}
+        scrollEventThrottle={16}
+      >
 
         {/* Header Image */}
         <View className="h-[300px] w-full relative bg-gray-200">
@@ -294,7 +356,7 @@ export default function TurfDetailsScreen() {
           )}
 
           {/* Bottom Gradient Overlay & Pagination */}
-          <View className="absolute bottom-0 left-0 right-0 h-24 justify-end pb-10 px-4 pointer-events-none" style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}>
+          <View className="absolute bottom-0 left-0 right-0 h-24 justify-end pb-10 px-4 pointer-events-none">
             <View className="flex-row justify-between items-center">
               <View className="bg-black/50 rounded-full px-3 py-1">
                 <Text className="text-white font-sans-medium text-[11px]">{activeImageIndex + 1} / {totalImages}</Text>
@@ -344,7 +406,7 @@ export default function TurfDetailsScreen() {
 
           {/* Sports Pills */}
           <View className="flex-row flex-wrap gap-2 mb-4">
-            {Array.isArray(turf.sports) ? turf.sports.map((sport: any, index: number) => {
+            {getSportsList(turf?.sports).length > 0 ? getSportsList(turf?.sports).map((sport: any, index: number) => {
               const sportName = sport.name || sport;
               const isFootball = sportName.toLowerCase() === 'football';
               const isCricket = sportName.toLowerCase() === 'cricket';
