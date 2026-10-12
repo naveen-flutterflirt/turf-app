@@ -76,7 +76,7 @@ export default function PrivacyPolicyScreen() {
             You have the right to request the deletion of your personal data and account at any time.
           </Text>
           <View className="bg-red-50 p-4 rounded-xl border border-red-100">
-            <Text className="text-sm font-sans-bold text-red-700 mb-2">To request deletion of your account and data, please email us at support@turfcut.com</Text>
+            <Text className="text-sm font-sans-bold text-red-700 mb-2">To request deletion of your account and data, please email us at info@flutterflirt.com</Text>
             <Text className="text-xs font-sans-medium text-red-500">We will process your request within 30 days of receiving your email.</Text>
           </View>
         </View>
@@ -84,7 +84,7 @@ export default function PrivacyPolicyScreen() {
         <View className="mb-12">
           <Text className="text-lg font-sans-bold text-[#03624C] mb-3">6. Contact Information</Text>
           <Text className="text-base font-sans-medium text-gray-700 leading-relaxed">
-            If you have any questions, concerns, or require further clarification about our privacy practices, please contact us at: support@turfcut.com
+            If you have any questions, concerns, or require further clarification about our privacy practices, please contact us at: info@flutterflirt.com
           </Text>
         </View>
         

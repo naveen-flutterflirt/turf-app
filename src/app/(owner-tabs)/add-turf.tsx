@@ -140,16 +140,30 @@ export default function AddTurfScreen() {
   };
 
   const handleAddOtherSport = () => {
-    const s = otherSportInput.trim();
-    if (s && !selectedSports.includes(s)) {
-      setSelectedSports([...selectedSports, s]);
+    if (!otherSportInput.trim()) return;
+    const items = otherSportInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => Boolean(s) && !selectedSports.includes(s));
+
+    if (items.length > 0) {
+      // Avoid duplicate additions if user typed "Cricket, Cricket"
+      const uniqueNew = Array.from(new Set(items)).filter(s => !selectedSports.includes(s));
+      setSelectedSports(prev => [...prev, ...uniqueNew]);
       setOtherSportInput('');
     }
   };
 
   const handleAddAmenity = () => {
-    if (amenityInput.trim() && !amenities.includes(amenityInput.trim())) {
-      setAmenities([...amenities, amenityInput.trim()]);
+    if (!amenityInput.trim()) return;
+    const items = amenityInput
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => Boolean(a) && !amenities.includes(a));
+
+    if (items.length > 0) {
+      const uniqueNew = Array.from(new Set(items)).filter(a => !amenities.includes(a));
+      setAmenities(prev => [...prev, ...uniqueNew]);
       setAmenityInput('');
     }
   };

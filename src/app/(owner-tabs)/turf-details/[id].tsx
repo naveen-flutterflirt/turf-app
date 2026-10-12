@@ -23,10 +23,13 @@ const getAmenitiesList = (amenitiesData: any): string[] => {
       }
     }
   }
-  if (Array.isArray(parsed)) {
-    return parsed.map((a: any) => typeof a === 'object' ? a.name || a.title || String(a) : String(a));
-  }
-  return [String(parsed)];
+  const arr = Array.isArray(parsed) ? parsed : [parsed];
+  const flattened = arr.flatMap((a: any) => {
+    const val = typeof a === 'object' && a !== null ? a.name || a.title || String(a) : String(a);
+    return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val.trim()];
+  }).filter(Boolean);
+
+  return Array.from(new Set(flattened));
 };
 
 const getSportsList = (sportsData: any): any[] => {
@@ -48,7 +51,12 @@ const getSportsList = (sportsData: any): any[] => {
     }
   }
 
-  return arr;
+  const flattened = arr.flatMap((s: any) => {
+    const val = typeof s === 'object' && s !== null ? s.name || s.title || String(s) : String(s);
+    return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val.trim()];
+  }).filter(Boolean);
+
+  return Array.from(new Set(flattened));
 };
 
 
@@ -120,6 +128,7 @@ export default function TurfDetailsScreen() {
   };
 
   const fetchTurfDetails = async () => {
+    if (!id) return;
     setIsLoading(true);
     try {
       const response = await fetch(`${baseUrl}/owner/turfs/${id}`, {
@@ -128,24 +137,24 @@ export default function TurfDetailsScreen() {
         }
       });
 
+      const textResponse = await response.text();
       let data: any = {};
       try {
-        const textResponse = await response.text();
-        data = JSON.parse(textResponse);
+        data = textResponse ? JSON.parse(textResponse) : {};
       } catch (e) {
-        console.warn('Failed to parse JSON response in fetchTurfDetails');
+        console.warn(`[owner turf-details] Failed to parse JSON for turf ${id}. Response status: ${response.status}. Body preview: ${textResponse.slice(0, 150)}`);
       }
 
-      if (response.ok) {
-        setTurf(data.turf || data);
+      if (response.ok && (data.success || data.data || data.turf)) {
+        setTurf(data.data || data.turf || data);
       } else {
-        showAlert('Error', data.message || 'Failed to load turf details');
-        router.push('/(owner-tabs)/turfs');
+        console.warn(`[owner turf-details] Fetch turf failed: ${response.status}`, data);
+        if (data.message) {
+          showAlert('Error', data.message);
+        }
       }
     } catch (error) {
-      console.error(error);
-      showAlert('Error', 'Failed to connect to the server');
-      router.push('/(owner-tabs)/turfs');
+      console.error('[owner turf-details] Network error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -153,17 +162,8 @@ export default function TurfDetailsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (turfData && typeof turfData === 'string') {
-        try {
-          setTurf(JSON.parse(turfData));
-          setIsLoading(false);
-        } catch (e) {
-          fetchTurfDetails();
-        }
-      } else {
-        fetchTurfDetails();
-      }
-    }, [id, turfData])
+      fetchTurfDetails();
+    }, [id])
   );
 
   const handleDelete = () => {

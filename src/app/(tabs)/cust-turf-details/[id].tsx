@@ -27,11 +27,12 @@ const getAmenitiesList = (amenitiesData: any): string[] => {
     }
   }
 
-  return arr.map(item => {
-    if (typeof item === 'string') return item;
-    if (item && typeof item === 'object') return item.name || item.title || String(item);
-    return String(item);
+  const flattened = arr.flatMap(item => {
+    const str = typeof item === 'object' && item !== null ? item.name || item.title || String(item) : String(item);
+    return str.includes(',') ? str.split(',').map((s: any) => s.trim()).filter(Boolean) : [str.trim()];
   }).filter(Boolean);
+
+  return Array.from(new Set(flattened));
 };
 
 const getSportsList = (sportsData: any): any[] => {
@@ -53,7 +54,12 @@ const getSportsList = (sportsData: any): any[] => {
     }
   }
 
-  return arr;
+  const flattened = arr.flatMap(item => {
+    const str = typeof item === 'object' && item !== null ? item.name || item.title || String(item) : String(item);
+    return str.includes(',') ? str.split(',').map((s: any) => s.trim()).filter(Boolean) : [str.trim()];
+  }).filter(Boolean);
+
+  return Array.from(new Set(flattened));
 };
 
 const getTurfImageUris = (images: any): string[] => {
@@ -138,8 +144,21 @@ export default function TurfDetailsScreen() {
     });
   };
 
+  // Initialize turf immediately from route parameters if available
+  useEffect(() => {
+    if (turfData && typeof turfData === 'string') {
+      try {
+        const parsed = JSON.parse(turfData);
+        setTurf(parsed);
+        setIsLoading(false);
+      } catch (e) {
+        // Fallback to fetch
+      }
+    }
+  }, [turfData]);
+
   const fetchTurfDetails = async () => {
-    setIsLoading(true);
+    if (!id) return;
     try {
       const response = await fetch(`${baseUrl}/customer/turfs/${id}`, {
         headers: {
@@ -147,26 +166,29 @@ export default function TurfDetailsScreen() {
         }
       });
 
+      const textResponse = await response.text();
       let data: any = {};
       try {
-        const textResponse = await response.text();
-        data = JSON.parse(textResponse);
+        data = textResponse ? JSON.parse(textResponse) : {};
       } catch (e) {
-        console.warn('Failed to parse JSON response in fetchTurfDetails');
+        // 404 from backend HTML page - we already have turf from list params
       }
 
-      if (response.ok && data.success) {
-        setTurf(data.data || data.turf);
-      } else if (response.ok) {
-        setTurf(data.turf || data);
-      } else {
-        showAlert('Error', data.message || 'Failed to load turf details');
-        router.push('/(tabs)');
+      if (response.ok && (data.success || data.data || data.turf)) {
+        setTurf(data.data || data.turf || data);
+      } else if (!turf) {
+        // Only if we don't already have turfData, fetch from customer/turfs list
+        const listRes = await fetch(`${baseUrl}/customer/turfs`, {
+          headers: { 'Authorization': `Bearer ${userData?.token}` }
+        });
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const found = (listData.data || []).find((t: any) => t.id === id);
+          if (found) setTurf(found);
+        }
       }
     } catch (error) {
-      console.error(error);
-      showAlert('Error', 'Failed to connect to the server');
-      router.push('/(tabs)');
+      console.error('[cust-turf-details] Network error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -174,17 +196,8 @@ export default function TurfDetailsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (turfData && typeof turfData === 'string') {
-        try {
-          setTurf(JSON.parse(turfData));
-          setIsLoading(false);
-        } catch (e) {
-          fetchTurfDetails();
-        }
-      } else {
-        fetchTurfDetails();
-      }
-    }, [id, turfData])
+      fetchTurfDetails();
+    }, [id])
   );
 
   if (isLoading || !turf) {
@@ -397,7 +410,7 @@ export default function TurfDetailsScreen() {
           <View className="mb-3 mt-4">
             <Text className="text-lg font-sans-bold text-[#032221]">Customer Feedback</Text>
           </View>
-          
+
           {turf.feedbacks && turf.feedbacks.length > 0 ? (
             <View className="mb-8">
               {turf.feedbacks.map((feedback: any, index: number) => (
@@ -406,11 +419,11 @@ export default function TurfDetailsScreen() {
                     <Text className="font-sans-bold text-[14px] text-[#032221]">{feedback.customer_name || 'Customer'}</Text>
                     <View className="flex-row">
                       {[1, 2, 3, 4, 5].map((star) => (
-                        <Ionicons 
-                          key={star} 
-                          name="star" 
-                          size={12} 
-                          color={star <= (feedback.rating || 0) ? '#FBBF24' : '#E5E7EB'} 
+                        <Ionicons
+                          key={star}
+                          name="star"
+                          size={12}
+                          color={star <= (feedback.rating || 0) ? '#FBBF24' : '#E5E7EB'}
                           style={{ marginLeft: 2 }}
                         />
                       ))}

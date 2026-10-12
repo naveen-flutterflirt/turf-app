@@ -56,9 +56,18 @@ export default function TermsAndConditionsScreen() {
         </View>
 
         <View className="mb-8">
-          <Text className="text-lg font-sans-bold text-[#03624C] mb-3">3. Payments and Fees</Text>
-          <Text className="text-base font-sans-medium text-gray-700 leading-relaxed">
-            Turfcut facilitates payments between players and turf owners through secure third-party gateways (e.g., Razorpay). Turf owners agree to our standard commission structure, which is automatically deducted from payouts. We are not responsible for transaction failures caused by external banking networks.
+          <Text className="text-lg font-sans-bold text-[#03624C] mb-3">3. Payments, Commission, and Platform Share</Text>
+          <Text className="text-base font-sans-medium text-gray-700 leading-relaxed mb-3">
+            Turfcut facilitates seamless online and on-venue payments between players and turf owners through secure authorized payment gateways (e.g., Razorpay).
+          </Text>
+          <View className="bg-[#E6F4EA] border border-[#03624C]/20 rounded-2xl p-4 mb-3">
+            <Text className="text-base font-sans-bold text-[#03624C] mb-1">Platform Commission Fee (10%):</Text>
+            <Text className="text-sm font-sans-medium text-gray-800 leading-relaxed">
+              Turfcut charges a flat platform service fee / commission of <Text className="font-sans-bold text-[#032221]">10% on every confirmed booking</Text>. By listing your turf on Turfcut, turf owners explicitly agree that our 10% platform share will be automatically deducted from the total booking amount before final payouts/settlements are disbursed to the turf owner.
+            </Text>
+          </View>
+          <Text className="text-sm font-sans-medium text-gray-600 leading-relaxed">
+            Payouts are processed to the bank account details provided during owner verification. We are not responsible for transaction failures or processing delays caused by external banking networks.
           </Text>
         </View>
 
@@ -87,9 +96,10 @@ export default function TermsAndConditionsScreen() {
         </View>
 
         <View className="mb-12">
-          <Text className="text-lg font-sans-bold text-[#03624C] mb-3">6. Contact Us</Text>
+          <Text className="text-lg font-sans-bold text-[#03624C] mb-3">6. Contact & Support</Text>
           <Text className="text-base font-sans-medium text-gray-700 leading-relaxed">
-            For any questions regarding these Terms and Conditions, please reach out to our legal team at: legal@turfcut.com
+            For support, inquiries, or questions regarding these Terms and Conditions, please reach out to us at:{' '}
+            <Text className="font-sans-bold text-[#03624C]">info@flutterflirt.com</Text>
           </Text>
         </View>
         

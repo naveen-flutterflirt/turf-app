@@ -2,7 +2,7 @@
   "expo": {
     "name": "Turfcut",
     "slug": "turfcut",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -29,7 +29,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.turfcut.app",
-      "versionCode": 22,
+      "versionCode": 23,
       "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "intentFilters": [

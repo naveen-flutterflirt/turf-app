@@ -324,14 +324,50 @@ export default function OwnerProfileScreen() {
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
-            {/* Setting: Delete Account */}
-            <TouchableOpacity onPress={() => setIsDeleteModalVisible(true)} activeOpacity={0.7} className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 flex-row items-center mb-8">
-              <View className="w-10 h-10 rounded-full bg-red-50 items-center justify-center mr-4">
-                <Ionicons name="trash" size={20} color="#DC2626" />
+            {/* PLATFORM COMMISSION / FEES Section */}
+            <Text className="text-[#03624C] text-xs font-sans-bold tracking-widest mb-3 ml-2">PLATFORM PRICING & FEES</Text>
+            
+            <View className="bg-emerald-50/70 border border-emerald-200/60 shadow-sm rounded-2xl p-4 mb-8">
+              <View className="flex-row items-center mb-2">
+                <View className="w-9 h-9 rounded-full bg-[#03624C] items-center justify-center mr-3 shadow-sm">
+                  <Ionicons name="pricetag" size={18} color="#FFFFFF" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[#032221] text-base font-sans-bold">Platform Share (10%)</Text>
+                  <Text className="text-[#03624C] text-xs font-sans-semibold">Fixed Fee Per Booking</Text>
+                </View>
+                <View className="bg-[#03624C] px-2.5 py-1 rounded-full">
+                  <Text className="text-white text-xs font-sans-bold">10%</Text>
+                </View>
+              </View>
+              <Text className="text-gray-600 text-xs font-sans-medium leading-relaxed mt-1">
+                Turfcut charges a flat 10% platform share on every confirmed booking. The remaining 90% is directly transferred to your registered bank account during settlement payouts.
+              </Text>
+            </View>
+
+            {/* LEGAL Section */}
+            <Text className="text-[#03624C] text-xs font-sans-bold tracking-widest mb-3 ml-2">LEGAL & POLICIES</Text>
+
+            {/* Setting: Terms & Conditions */}
+            <TouchableOpacity onPress={() => router.push('/terms-and-conditions')} activeOpacity={0.7} className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 flex-row items-center mb-3">
+              <View className="w-10 h-10 rounded-full bg-purple-50 items-center justify-center mr-4">
+                <Ionicons name="shield-checkmark" size={20} color="#8B5CF6" />
               </View>
               <View className="flex-1">
-                <Text className="text-[#032221] text-sm font-sans-semibold mb-1">Delete My Account</Text>
-                <Text className="text-gray-500 text-xs font-sans-medium">Permanently delete your account</Text>
+                <Text className="text-[#032221] text-sm font-sans-semibold mb-1">Terms & Conditions</Text>
+                <Text className="text-gray-500 text-xs font-sans-medium">Includes 10% commission & platform rules</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            {/* Setting: Privacy Policy */}
+            <TouchableOpacity onPress={() => router.push('/privacy-policy')} activeOpacity={0.7} className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 flex-row items-center mb-8">
+              <View className="w-10 h-10 rounded-full bg-blue-50 items-center justify-center mr-4">
+                <Ionicons name="document-text" size={20} color="#3B82F6" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[#032221] text-sm font-sans-semibold mb-1">Privacy Policy</Text>
+                <Text className="text-gray-500 text-xs font-sans-medium">Read data security and privacy guidelines</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </TouchableOpacity>

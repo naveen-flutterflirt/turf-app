@@ -65,18 +65,29 @@ export default function EditTurfScreen() {
 
       let loadedSports: string[] = [];
       if (Array.isArray(parsedSports)) {
-        loadedSports = parsedSports.map((s: any) => typeof s === 'object' ? s.name || s.title || String(s) : String(s));
+        loadedSports = parsedSports.flatMap((s: any) => {
+          const val = typeof s === 'object' ? s.name || s.title || String(s) : String(s);
+          return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val];
+        });
+      } else if (typeof parsedSports === 'string') {
+        loadedSports = parsedSports.split(',').map((s: string) => s.trim()).filter(Boolean);
       }
-      setSelectedSports(loadedSports);
+      setSelectedSports(Array.from(new Set(loadedSports)));
       
       let loadedAmenities: string[] = [];
       if (Array.isArray(turf.amenities)) {
-        loadedAmenities = turf.amenities.map((a: any) => typeof a === 'object' ? a.name || a.title || String(a) : String(a));
+        loadedAmenities = turf.amenities.flatMap((a: any) => {
+          const val = typeof a === 'object' ? a.name || a.title || String(a) : String(a);
+          return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val];
+        });
       } else if (typeof turf.amenities === 'string') {
         try {
           const parsed = JSON.parse(turf.amenities);
           if (Array.isArray(parsed)) {
-            loadedAmenities = parsed.map((a: any) => typeof a === 'object' ? a.name || a.title || String(a) : String(a));
+            loadedAmenities = parsed.flatMap((a: any) => {
+              const val = typeof a === 'object' ? a.name || a.title || String(a) : String(a);
+              return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val];
+            });
           } else {
             loadedAmenities = [turf.amenities];
           }
@@ -84,7 +95,7 @@ export default function EditTurfScreen() {
           loadedAmenities = turf.amenities.split(',').map((a: string) => a.trim()).filter(Boolean);
         }
       }
-      setAmenities(loadedAmenities);
+      setAmenities(Array.from(new Set(loadedAmenities)));
 
       setAddress(turf.address || '');
       setCity(turf.city || '');
@@ -187,16 +198,29 @@ export default function EditTurfScreen() {
   };
 
   const handleAddOtherSport = () => {
-    const s = otherSportInput.trim();
-    if (s && !selectedSports.includes(s)) {
-      setSelectedSports([...selectedSports, s]);
+    if (!otherSportInput.trim()) return;
+    const items = otherSportInput
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => Boolean(s) && !selectedSports.includes(s));
+
+    if (items.length > 0) {
+      const uniqueNew = Array.from(new Set(items)).filter(s => !selectedSports.includes(s));
+      setSelectedSports(prev => [...prev, ...uniqueNew]);
       setOtherSportInput('');
     }
   };
 
   const handleAddAmenity = () => {
-    if (amenityInput.trim() && !amenities.includes(amenityInput.trim())) {
-      setAmenities([...amenities, amenityInput.trim()]);
+    if (!amenityInput.trim()) return;
+    const items = amenityInput
+      .split(',')
+      .map(a => a.trim())
+      .filter(a => Boolean(a) && !amenities.includes(a));
+
+    if (items.length > 0) {
+      const uniqueNew = Array.from(new Set(items)).filter(a => !amenities.includes(a));
+      setAmenities(prev => [...prev, ...uniqueNew]);
       setAmenityInput('');
     }
   };
@@ -214,17 +238,32 @@ export default function EditTurfScreen() {
     setIsSaving(true);
     try {
       // 1. Upload new local images to S3 concurrently
-      const finalImageUrls = await Promise.all(
+      const finalImageObjects = (await Promise.all(
         images.map(async (item) => {
-          const uri = typeof item === 'string' ? item : (item as any)?.url || (item as any)?.image_url || '';
-          if (typeof uri === 'string' && uri.startsWith('file://')) {
-            return await uploadImageToS3(uri, userData?.token || '', baseUrl);
-          } else {
-            // Already an S3 URL or existing object
-            return item;
+          // If it's a local file picked from device:
+          if (typeof item === 'string' && item.startsWith('file://')) {
+            const uploadRes = await uploadImageToS3(item, userData?.token || '', baseUrl);
+            return {
+              url: uploadRes.url,
+              key: uploadRes.key,
+            };
           }
+          // If it's an existing image object from backend:
+          if (typeof item === 'object' && item !== null) {
+            return {
+              id: (item as any).id,
+              image_url: (item as any).image_url || (item as any).url || (item as any).uri,
+            };
+          }
+          // If it's an existing string URL:
+          if (typeof item === 'string' && item.startsWith('http')) {
+            return {
+              url: item,
+            };
+          }
+          return null;
         })
-      );
+      )).filter(Boolean);
 
       // 2. Prepare payload
       const payload = {
@@ -238,7 +277,7 @@ export default function EditTurfScreen() {
         price_per_hour: parseFloat(price),
         sports: selectedSports,
         amenities,
-        images: finalImageUrls,
+        images: finalImageObjects,
       };
 
       // 3. Update via API

@@ -90,15 +90,50 @@ export default function SearchScreen() {
     setIsRefreshing(false);
   };
 
+  const parseSports = (rawSports: any): string[] => {
+    if (!rawSports) return [];
+    let parsed = rawSports;
+    if (typeof parsed === 'string') {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch (e) {
+        if (parsed.includes(',')) {
+          parsed = parsed.split(',').map((x: string) => x.trim()).filter(Boolean);
+        } else {
+          parsed = [parsed];
+        }
+      }
+    }
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    return arr.flatMap((s: any) => {
+      const val = typeof s === 'object' && s !== null ? s.name || s.title || String(s) : String(s);
+      return val.includes(',') ? val.split(',').map((x: string) => x.trim()).filter(Boolean) : [val.trim()];
+    }).filter(Boolean);
+  };
+
   const filteredTurfs = turfs.filter((turf: any) => {
     if (turf.is_open === false) return false;
 
+    const sportsList = parseSports(turf.sports);
+
     if (filters.sport === 'Others') {
-      const hasOtherSport = turf.sports && turf.sports.some((s: any) => {
-        const name = typeof s === 'string' ? s : (s.name || '');
-        return !['Football', 'Cricket', 'Basketball', 'Tennis', 'Badminton'].includes(name);
+      const mainSports = [
+        'football', 'cricket', 'basketball', 'tennis', 'badminton',
+        'snooker & pool', 'turf / football / box cricket', 'table tennis',
+        'shooting range', 'polo', 'equestrian', 'golf', 'swimming & clubs',
+        'indoor games / multi-sport', 'water sports'
+      ];
+      // A turf qualifies for "Others" if it has ANY sport not in the standard main sports list,
+      // or if user explicitly added "others"
+      const hasOtherSport = sportsList.some((name: string) => {
+        const lower = name.toLowerCase();
+        return lower === 'others' || !mainSports.includes(lower);
       });
       if (!hasOtherSport) return false;
+    } else if (filters.sport) {
+      const target = filters.sport.toLowerCase();
+      const hasSport = sportsList.some((name: string) => name.toLowerCase().includes(target) || target.includes(name.toLowerCase()));
+      if (!hasSport) return false;
     }
 
     if (searchQuery) {
@@ -106,10 +141,7 @@ export default function SearchScreen() {
       return (
         (turf.name && turf.name.toLowerCase().includes(query)) ||
         (turf.city && turf.city.toLowerCase().includes(query)) ||
-        (turf.sports && turf.sports.some((s: any) => {
-          const name = typeof s === 'string' ? s : (s.name || '');
-          return name.toLowerCase().includes(query);
-        }))
+        sportsList.some((name: string) => name.toLowerCase().includes(query))
       );
     }
 
@@ -244,7 +276,7 @@ export default function SearchScreen() {
           {/* Results Header */}
           <View className="px-6 flex-row justify-between items-end mb-4">
             <Text className="text-[13px] font-sans-bold text-[#032221]">
-              {searchQuery ? filteredTurfs.length : totalTurfsCount} turfs found
+              {(searchQuery || hasActiveFilters) ? filteredTurfs.length : totalTurfsCount} turfs found
             </Text>
             <View className="flex-row items-center">
               {/* <Text className="text-[11px] font-sans-medium text-gray-500 mr-2">Sort by</Text>
