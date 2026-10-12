@@ -26,7 +26,7 @@ export default function CreateBroadcastScreen() {
   const [isPublic, setIsPublic] = useState(true);
   const [selectedSport, setSelectedSport] = useState<any>(null);
   const [showSports, setShowSports] = useState(false);
-  
+
   const [playDate, setPlayDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -72,8 +72,8 @@ export default function CreateBroadcastScreen() {
   const activeTurf = turf || nearestUpcomingBooking?.turf;
   const activeBooking = nearestUpcomingBooking;
 
-  const turfName = activeTurf?.name || 'Select an upcoming booking';
-  const turfCity = activeTurf?.city || (activeTurf ? 'Bhopal, MP' : 'No upcoming bookings found');
+  const turfName = activeTurf?.name || '';
+  const turfCity = activeTurf?.city || (activeTurf ? 'Bhopal, MP' : '');
   const turfImage = getTurfImageUri(activeTurf?.images);
 
   const availableSports = activeTurf?.sports || (activeBooking ? [{ id: activeBooking.sport_id, name: activeBooking.sport_name }] : [
@@ -87,40 +87,40 @@ export default function CreateBroadcastScreen() {
 
   const createBroadcastMutation = useMutation({
     mutationFn: async () => {
-        const payload: any = {
-          message: message || "Looking for players for a weekend match!"
-        };
+      const payload: any = {
+        message: message || "Looking for players for a weekend match!"
+      };
 
-        const finalSportId = selectedSport?.id || activeBooking?.sport_id || activeTurf?.sports?.[0]?.id;
-        // Only send sport_id if it is a real UUID (not a mock integer ID from the fallback array)
-        if (finalSportId && String(finalSportId).length > 10) {
-          payload.sport_id = finalSportId;
-        }
+      const finalSportId = selectedSport?.id || activeBooking?.sport_id || activeTurf?.sports?.[0]?.id;
+      // Only send sport_id if it is a real UUID (not a mock integer ID from the fallback array)
+      if (finalSportId && String(finalSportId).length > 10) {
+        payload.sport_id = finalSportId;
+      }
 
-        const finalPlayDate = playDate || (activeBooking?.booking_date ? activeBooking.booking_date.split('T')[0] : null);
-        if (finalPlayDate) payload.play_date = finalPlayDate;
+      const finalPlayDate = playDate || (activeBooking?.booking_date ? activeBooking.booking_date.split('T')[0] : null);
+      if (finalPlayDate) payload.play_date = finalPlayDate;
 
-        const finalStartTime = startTime || activeBooking?.start_time;
-        if (finalStartTime) payload.start_time = finalStartTime;
+      const finalStartTime = startTime || activeBooking?.start_time;
+      if (finalStartTime) payload.start_time = finalStartTime;
 
-        const finalEndTime = endTime || activeBooking?.end_time;
-        if (finalEndTime) payload.end_time = finalEndTime;
+      const finalEndTime = endTime || activeBooking?.end_time;
+      if (finalEndTime) payload.end_time = finalEndTime;
 
-        if (playerCount) payload.players_needed = playerCount;
-        if (skillLevel) payload.skill_level = skillLevel;
+      if (playerCount) payload.players_needed = playerCount;
+      if (skillLevel) payload.skill_level = skillLevel;
 
-        const tid = activeTurf?.id || activeTurf?._id || activeBooking?.turf_id;
-        if (tid) {
-          payload.turf_id = tid;
-        }
+      const tid = activeTurf?.id || activeTurf?._id || activeBooking?.turf_id;
+      if (tid) {
+        payload.turf_id = tid;
+      }
 
-        const response = await fetch(`${baseUrl}/community/broadcasts`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userData?.token}`,
-          },
-          body: JSON.stringify(payload)
+      const response = await fetch(`${baseUrl}/community/broadcasts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData?.token}`,
+        },
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         const errorText = await response.text();
@@ -179,7 +179,7 @@ export default function CreateBroadcastScreen() {
     }
     if (selectedTime) {
       setStartTimeObj(selectedTime);
-      const formattedTime = selectedTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }).substring(0,5);
+      const formattedTime = selectedTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }).substring(0, 5);
       setStartTime(formattedTime);
     }
   };
@@ -191,7 +191,7 @@ export default function CreateBroadcastScreen() {
     }
     if (selectedTime) {
       setEndTimeObj(selectedTime);
-      const formattedTime = selectedTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }).substring(0,5);
+      const formattedTime = selectedTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }).substring(0, 5);
       setEndTime(formattedTime);
     }
   };
@@ -214,20 +214,23 @@ export default function CreateBroadcastScreen() {
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 20, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
 
           {/* Turf Info Card */}
-          <View className="flex-row items-center mb-6">
-            {turfImage && (
-              <Image source={{ uri: turfImage }} className="w-[72px] h-[72px] rounded-2xl bg-gray-200" />
-            )}
-            <View className={turfImage ? "ml-4 flex-1" : "flex-1"}>
-              <Text className="text-[16px] font-sans-bold text-[#032221] mb-1">{turfName}</Text>
-              <View className="flex-row items-center">
-                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                <Text className="text-[13px] font-sans-medium text-gray-500 ml-1">{turfCity}</Text>
+          {turfName ? (
+            <View className="flex-row items-center mb-6">
+              {turfImage && (
+                <Image source={{ uri: turfImage }} className="w-[72px] h-[72px] rounded-2xl bg-gray-200" />
+              )}
+              <View className={turfImage ? "ml-4 flex-1" : "flex-1"}>
+                <Text className="text-[16px] font-sans-bold text-[#032221] mb-1">{turfName}</Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="location-outline" size={14} color="#6B7280" />
+                  <Text className="text-[13px] font-sans-medium text-gray-500 ml-1">{turfCity}</Text>
+                </View>
               </View>
             </View>
-          </View>
+          ) : null}
 
           {/* Message Input */}
+          <Text className="text-[14px] font-sans-bold text-[#032221] mb-2">Broadcast Message</Text>
           <View className="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
             <TextInput
               multiline
@@ -283,7 +286,7 @@ export default function CreateBroadcastScreen() {
           {/* Timing Fields */}
           <Text className="text-[14px] font-sans-bold text-[#032221] mb-2">Timing <Text className="font-sans-medium text-gray-400 font-normal">(Optional)</Text></Text>
           <View className="bg-white rounded-[14px] border border-gray-100 mb-6 p-4 shadow-sm" style={{ elevation: 1, shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-            <TouchableOpacity 
+            <TouchableOpacity
               className="flex-row items-center border-b border-gray-50 pb-3 mb-3"
               onPress={() => setShowDatePicker(true)}
             >
@@ -292,9 +295,9 @@ export default function CreateBroadcastScreen() {
                 {playDate || "Select Date (YYYY-MM-DD)"}
               </Text>
             </TouchableOpacity>
-            
+
             <View className="flex-row items-center justify-between">
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="flex-row items-center flex-1 border-r border-gray-50 pr-3"
                 onPress={() => setShowStartTimePicker(true)}
               >
@@ -303,8 +306,8 @@ export default function CreateBroadcastScreen() {
                   {startTime || "Start (HH:MM)"}
                 </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 className="flex-row items-center flex-1 pl-4"
                 onPress={() => setShowEndTimePicker(true)}
               >

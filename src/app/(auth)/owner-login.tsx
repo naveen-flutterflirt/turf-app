@@ -21,7 +21,7 @@ if (!isExpoGo) {
   try {
     GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
     GoogleSignin.configure({
-      webClientId: '1090732856735-b6flsagu6ielg7q7b7ac8guknn36aj6v.apps.googleusercontent.com',
+      webClientId: '1090732856735-4mfrodeh15igjitpl7ha56uvmd31pa0h.apps.googleusercontent.com',
     });
   } catch (e) {
     console.warn('Google Signin could not be configured', e);
@@ -155,7 +155,7 @@ export default function OwnerLoginScreen() {
             <View className="px-6 pt-8 pb-14">
               <View className="flex-col items-start mb-6">
                 <Image
-                  source={require('../../../assets/images/logo_only.png')}
+                  source={require('../../../assets/images/logo.png')}
                   style={{ width: 35, height: 35 }}
                   resizeMode="contain"
                 />

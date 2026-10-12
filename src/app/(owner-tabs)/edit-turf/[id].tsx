@@ -12,18 +12,20 @@ import { useAppStore } from '../../../stores/useAppStore';
 import { useAlert } from '../../../context/AlertContext';
 
 const SPORTS_OPTIONS = [
-  'Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton'
+  'Snooker & Pool', 'Cricket', 'Turf / Football / Box Cricket', 'Badminton', 'Tennis', 'Table Tennis', 'Shooting Range', 'Polo', 'Equestrian', 'Golf', 'Swimming & Clubs', 'Indoor Games / Multi-sport', 'Water Sports'
 ];
 
 const SportIcon = ({ sport, size, color }: { sport: string, size: number, color: string }) => {
-  switch (sport) {
-    case 'Football': return <Ionicons name="football" size={size} color={color} />;
-    case 'Cricket': return <Ionicons name="baseball" size={size} color={color} />;
-    case 'Tennis': return <Ionicons name="tennisball" size={size} color={color} />;
-    case 'Basketball': return <Ionicons name="basketball" size={size} color={color} />;
-    case 'Badminton': return <MaterialCommunityIcons name="badminton" size={size} color={color} />;
-    default: return <Ionicons name="trophy-outline" size={size} color={color} />;
-  }
+  const s = sport.toLowerCase();
+  if (s.includes('football') || s.includes('turf') || s.includes('soccer')) return <Ionicons name="football" size={size} color={color} />;
+  if (s.includes('cricket')) return <Ionicons name="baseball" size={size} color={color} />;
+  if (s.includes('tennis') && !s.includes('table')) return <Ionicons name="tennisball" size={size} color={color} />;
+  if (s.includes('badminton')) return <MaterialCommunityIcons name="badminton" size={size} color={color} />;
+  if (s.includes('snooker') || s.includes('pool')) return <Ionicons name="ellipse-outline" size={size} color={color} />;
+  if (s.includes('table tennis')) return <MaterialCommunityIcons name="table-tennis" size={size} color={color} />;
+  if (s.includes('golf')) return <Ionicons name="golf-outline" size={size} color={color} />;
+  if (s.includes('water') || s.includes('swimming')) return <Ionicons name="water-outline" size={size} color={color} />;
+  return <Ionicons name="trophy-outline" size={size} color={color} />;
 };
 
 export default function EditTurfScreen() {
@@ -33,7 +35,7 @@ export default function EditTurfScreen() {
   const { baseUrl } = useApi();
   const userData = useAppStore((state) => state.userData);
 
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<any[]>([]);
   const [name, setName] = useState('');
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [showOtherSportInput, setShowOtherSportInput] = useState(false);
@@ -97,8 +99,7 @@ export default function EditTurfScreen() {
         try { parsedImages = JSON.parse(parsedImages); } catch(e) {}
       }
       if (Array.isArray(parsedImages)) {
-        const extractedUrls = parsedImages.map((img: any) => typeof img === 'string' ? img : (img?.url || img?.uri || img?.image_url || ''));
-        setImages(extractedUrls.filter(Boolean));
+        setImages(parsedImages);
       }
     };
 
@@ -212,20 +213,18 @@ export default function EditTurfScreen() {
 
     setIsSaving(true);
     try {
-      // 1. Upload new local images to S3
-      const finalImageUrls: any[] = [];
-      for (const item of images) {
-        const uri = typeof item === 'string' ? item : (item as any)?.url || (item as any)?.image_url || '';
-        if (typeof uri === 'string' && uri.startsWith('file://')) {
-          const s3Result = await uploadImageToS3(uri, userData?.token || '', baseUrl);
-          finalImageUrls.push(s3Result);
-        } else {
-          // Already an S3 URL or existing object
-          // For backend compatibility, if we have an object with id/url/s3_key, we can pass it back
-          // If we only have a string URL, we pass it back as is (backend should handle it)
-          finalImageUrls.push(item);
-        }
-      }
+      // 1. Upload new local images to S3 concurrently
+      const finalImageUrls = await Promise.all(
+        images.map(async (item) => {
+          const uri = typeof item === 'string' ? item : (item as any)?.url || (item as any)?.image_url || '';
+          if (typeof uri === 'string' && uri.startsWith('file://')) {
+            return await uploadImageToS3(uri, userData?.token || '', baseUrl);
+          } else {
+            // Already an S3 URL or existing object
+            return item;
+          }
+        })
+      );
 
       // 2. Prepare payload
       const payload = {
@@ -295,7 +294,7 @@ export default function EditTurfScreen() {
           <View className="w-full h-48 bg-gray-200 rounded-2xl mb-6 relative overflow-hidden">
             {images.length > 0 ? (
               <Image
-                source={{ uri: typeof images[0] === 'string' ? images[0] : (images[0] as any)?.url || (images[0] as any)?.uri || '' }}
+                source={{ uri: typeof images[0] === 'string' ? images[0] : (images[0] as any)?.url || (images[0] as any)?.uri || (images[0] as any)?.image_url || '' }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
@@ -320,7 +319,7 @@ export default function EditTurfScreen() {
           {images.length > 0 && (
             <View className="flex-row flex-wrap gap-2 mb-6">
               {images.map((imgObj, index) => {
-                const uri = typeof imgObj === 'string' ? imgObj : (imgObj as any)?.url || (imgObj as any)?.uri || '';
+                const uri = typeof imgObj === 'string' ? imgObj : (imgObj as any)?.url || (imgObj as any)?.uri || (imgObj as any)?.image_url || '';
                 if (!uri) return null;
                 return (
                   <View key={index} className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200">

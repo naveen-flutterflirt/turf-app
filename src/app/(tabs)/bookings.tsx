@@ -111,8 +111,8 @@ export default function BookingsScreen() {
       <StatusBar style="dark" />
 
       {/* Header */}
-      <View className="px-6 pt-6 pb-4">
-        <Text className="text-[28px] font-sans-bold text-[#032221] mb-1">My Bookings</Text>
+      <View className="px-6 pt-6 pb-3">
+        <Text className="text-2xl font-sans-bold text-[#032221]">My Bookings</Text>
         <Text className="text-sm font-sans-medium text-gray-500">View and manage your bookings</Text>
       </View>
 
@@ -276,16 +276,26 @@ export default function BookingsScreen() {
                       <Text className="ml-1.5 text-xs font-sans-bold text-[#03624C]">Reschedule</Text>
                     </TouchableOpacity>
                   ) : statusConfig.label === 'Completed' ? (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedBookingForFeedback(booking);
-                        setFeedbackModalVisible(true);
-                      }}
-                      className="flex-1 flex-row items-center justify-center bg-[#FFFBEB] py-2.5 rounded-xl border border-[#F59E0B]/20"
-                    >
-                      <Ionicons name="star" size={14} color="#F59E0B" />
-                      <Text className="ml-1.5 text-xs font-sans-bold text-[#F59E0B]">Review</Text>
-                    </TouchableOpacity>
+                    (() => {
+                      const hasFeedback = booking.has_feedback || (booking.feedbacks && booking.feedbacks.length > 0);
+                      const initialFeedback = booking.feedback || (booking.feedbacks ? booking.feedbacks[0] : (booking.feedback_id ? { id: booking.feedback_id } : null));
+
+                      return (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedBookingForFeedback({ ...booking, feedback: initialFeedback });
+                            setFeedbackModalVisible(true);
+                          }}
+                          className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl border ${hasFeedback ? 'bg-[#E8F5EE] border-[#03624C]/20' : 'bg-[#FFFBEB] border-[#F59E0B]/20'
+                            }`}
+                        >
+                          <Ionicons name={hasFeedback ? "create-outline" : "star"} size={14} color={hasFeedback ? "#03624C" : "#F59E0B"} />
+                          <Text className={`ml-1.5 text-xs font-sans-bold ${hasFeedback ? 'text-[#03624C]' : 'text-[#F59E0B]'}`}>
+                            {hasFeedback ? 'Edit Review' : 'Review'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })()
                   ) : (
                     <TouchableOpacity
                       className="flex-1 flex-row items-center justify-center bg-[#E6F4EA] py-2.5 rounded-xl border border-[#03624C]/10"
@@ -324,6 +334,7 @@ export default function BookingsScreen() {
           }}
           bookingId={selectedBookingForFeedback.id || selectedBookingForFeedback.booking_id}
           turfId={selectedBookingForFeedback.turf_id}
+          initialFeedback={selectedBookingForFeedback.feedback}
           onSuccess={handleRefresh}
         />
       )}

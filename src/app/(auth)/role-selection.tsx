@@ -44,15 +44,17 @@ export default function RoleSelectionScreen() {
 
         {/* Logo */}
         <View className="items-center pt-8">
-
-          <Image
-            source={require('../../../assets/images/logo_only.png')}
-            style={{
-              width: 58,
-              height: 58,
-            }}
-            resizeMode="contain"
-          />
+          
+          <View className="bg-white/5 w-24 h-24 rounded-[28px] items-center justify-center border-[1.5px] border-white/30 shadow-2xl mb-4">
+            <Image
+              source={require('../../../assets/images/logo.png')}
+              style={{
+                width: 60,
+                height: 60,
+              }}
+              resizeMode="contain"
+            />
+          </View>
 
           <Image
             source={require('../../../assets/images/logo_text.png')}

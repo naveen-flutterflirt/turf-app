@@ -161,11 +161,9 @@ export default function ChatInfoScreen() {
             ) : (
               <View className="flex-row items-center justify-between">
                 <Text className="text-[18px] font-sans-bold text-[#032221] flex-1">{roomNameInput || 'Match Group'}</Text>
-                {actualIsHost && (
-                  <TouchableOpacity onPress={() => setIsEditingName(true)} className="p-2">
-                    <Ionicons name="pencil" size={20} color="#03624C" />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => setIsEditingName(true)} className="p-2">
+                  <Ionicons name="pencil" size={20} color="#03624C" />
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -185,9 +183,10 @@ export default function ChatInfoScreen() {
               </View>
             ) : (
               members.map((member: any, index: number) => {
-                const isMe = member.user_id === userData?.id;
+                if (!member) return null;
+                const isMe = member?.user_id === userData?.id;
                 return (
-                  <View key={member.user_id} className={`px-5 py-4 flex-row items-center justify-between ${index !== members.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                  <View key={member?.user_id || index} className={`px-5 py-4 flex-row items-center justify-between ${index !== members.length - 1 ? 'border-b border-gray-50' : ''}`}>
                     <View className="flex-row items-center flex-1">
                       <View className="w-12 h-12 bg-[#F3F4F6] rounded-full items-center justify-center mr-3 border border-gray-100">
                         <Text className="text-[16px] font-sans-bold text-[#032221]">

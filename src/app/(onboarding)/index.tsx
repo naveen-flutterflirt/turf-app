@@ -12,7 +12,7 @@ const slides = [
     id: '1',
     image: require('../../../assets/images/sports_players.png'),
     backgroundImage: require('../../../assets/images/stadium_bg.png'),
-    logo: require('../../../assets/images/logo_only.png'),
+    logo: require('../../../assets/images/logo.png'),
     logo_text: require('../../../assets/images/logo_text.png'),
     title: 'Book. Play.\nWin Together.',
     description: 'Discover and book the\nbest turfs near you.',

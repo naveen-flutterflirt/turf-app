@@ -20,7 +20,7 @@ if (!isExpoGo) {
   try {
     GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
     GoogleSignin.configure({
-      webClientId: '1090732856735-b6flsagu6ielg7q7b7ac8guknn36aj6v.apps.googleusercontent.com',
+      webClientId: '1090732856735-4mfrodeh15igjitpl7ha56uvmd31pa0h.apps.googleusercontent.com',
     });
   } catch (e) {
     console.warn('Google Signin could not be configured', e);

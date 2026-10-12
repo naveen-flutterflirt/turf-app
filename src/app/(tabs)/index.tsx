@@ -1,14 +1,15 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, AppState, useWindowDimensions, Linking, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, AppState, useWindowDimensions, Linking, Platform, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../stores/useAppStore';
 import { useApi } from '../../context/ApiContext';
 import * as Location from 'expo-location';
 import { getTurfImageUri } from '../../utils/imageHelper';
+import { LocationDisabledModal } from '../../components/ui/LocationDisabledModal';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -36,7 +37,20 @@ export default function HomeScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const isFetchingLocation = useRef(false);
   const [activeOfferIndex, setActiveOfferIndex] = useState(0);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const promoScrollRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        BackHandler.exitApp();
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => backHandler.remove();
+    }, [])
+  );
 
   const fetchLocation = useCallback(async (silent = false) => {
     if (isFetchingLocation.current) return;
@@ -46,14 +60,7 @@ export default function HomeScreen() {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
         if (!silent) {
-          Alert.alert(
-            'Location Disabled',
-            'Please turn on your device location to see nearby turfs.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Settings', onPress: () => Platform.OS === 'ios' ? Linking.openSettings() : Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS').catch(() => Linking.openSettings()) }
-            ]
-          );
+          setShowLocationModal(true);
           setCityName('Location Off');
           setErrorMsg('Device location is turned off.');
         }
@@ -325,6 +332,22 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [offers, bannerWidth]);
 
+  const sportsCategories = [
+    { name: 'Turf / Football', icon: 'football', color: '#03624C', type: 'Ionicons', query: 'Turf / Football / Box Cricket' },
+    { name: 'Cricket', icon: 'baseball', color: '#EF4444', type: 'Ionicons', query: 'Cricket' },
+    { name: 'Snooker', icon: 'ellipse-outline', color: '#8B5CF6', type: 'Ionicons', query: 'Snooker & Pool' },
+    { name: 'Badminton', icon: 'badminton', color: '#6B7280', type: 'MaterialCommunityIcons', query: 'Badminton' },
+    { name: 'Tennis', icon: 'tennisball', color: '#84CC16', type: 'Ionicons', query: 'Tennis' },
+    { name: 'TT', icon: 'table-tennis', color: '#F97316', type: 'MaterialCommunityIcons', query: 'Table Tennis' },
+    { name: 'Shooting', icon: 'disc-outline', color: '#64748B', type: 'Ionicons', query: 'Shooting Range' },
+    { name: 'Polo', icon: 'golf-outline', color: '#EAB308', type: 'Ionicons', query: 'Polo' },
+    { name: 'Equestrian', icon: 'scan-outline', color: '#A8A29E', type: 'Ionicons', query: 'Equestrian' },
+    { name: 'Golf', icon: 'golf', color: '#22C55E', type: 'Ionicons', query: 'Golf' },
+    { name: 'Swimming', icon: 'water', color: '#06B6D4', type: 'Ionicons', query: 'Swimming & Clubs' },
+    { name: 'Indoor', icon: 'grid', color: '#F43F5E', type: 'Ionicons', query: 'Indoor Games / Multi-sport' },
+    { name: 'Water', icon: 'boat-outline', color: '#0EA5E9', type: 'Ionicons', query: 'Water Sports' }
+  ];
+
   return (
     <View className="flex-1 bg-[#F9FAFB]">
       <StatusBar style="dark" />
@@ -418,65 +441,22 @@ export default function HomeScreen() {
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pl-6 mb-6">
             <View className="flex-row pr-10 pb-2">
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Football')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <Ionicons name="football" size={20} color="#03624C" />
-                </View>
-                <Text className="text-[#03624C] font-sans-bold text-[11px]">Football</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Cricket')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <Ionicons name="baseball" size={20} color="#EF4444" />
-                </View>
-                <Text className="text-[#032221] font-sans-bold text-[11px]">Cricket</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Basketball')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <Ionicons name="basketball" size={20} color="#F97316" />
-                </View>
-                <Text className="text-[#032221] font-sans-bold text-[11px]">Basketball</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Tennis')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <Ionicons name="tennisball" size={20} color="#84CC16" />
-                </View>
-                <Text className="text-[#032221] font-sans-bold text-[11px]">Tennis</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Badminton')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <MaterialCommunityIcons name="badminton" size={20} color="#6B7280" />
-                </View>
-                <Text className="text-[#032221] font-sans-bold text-[11px]">Badminton</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
-                onPress={() => router.push('/search?sport=Others')}
-              >
-                <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
-                  <Ionicons name="grid" size={20} color="#9CA3AF" />
-                </View>
-                <Text className="text-[#032221] font-sans-bold text-[11px]">Others</Text>
-              </TouchableOpacity>
+              {sportsCategories.map((sport, index) => (
+                <TouchableOpacity
+                  key={index}
+                  className="bg-white border border-gray-100 rounded-2xl w-[72px] h-[85px] items-center justify-center mr-3 shadow-sm"
+                  onPress={() => router.push(`/search?sport=${encodeURIComponent(sport.query)}` as any)}
+                >
+                  <View className="w-10 h-10 bg-[#F3F4F6] rounded-full items-center justify-center mb-1.5">
+                    {sport.type === 'MaterialCommunityIcons' ? (
+                      <MaterialCommunityIcons name={sport.icon as any} size={20} color={sport.color} />
+                    ) : (
+                      <Ionicons name={sport.icon as any} size={20} color={sport.color} />
+                    )}
+                  </View>
+                  <Text className="text-[#032221] font-sans-bold text-[9px] text-center px-1" numberOfLines={2}>{sport.name}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </ScrollView>
 
@@ -678,7 +658,9 @@ export default function HomeScreen() {
 
                           <View className="absolute bottom-3 left-3 bg-[#032221]/80 rounded px-2 py-1 flex-row items-center border border-white/10">
                             <Ionicons name="star" size={10} color="#FBBF24" />
-                            <Text className="text-white font-sans-bold text-xs ml-1">4.5</Text>
+                            <Text className="text-white font-sans-bold text-xs ml-1">
+                              {turf.average_rating ? Math.min(parseFloat(turf.average_rating), 5).toFixed(1) : '0.0'}
+                            </Text>
                           </View>
                         </View>
 
@@ -772,8 +754,12 @@ export default function HomeScreen() {
 
                       <View className="flex-row items-center mb-1.5">
                         <Ionicons name="star" size={12} color="#FBBF24" />
-                        <Text className="text-[11px] font-sans-bold text-gray-700 ml-1">4.5</Text>
-                        <Text className="text-[11px] font-sans-medium text-gray-400 ml-1">(0 reviews)</Text>
+                        <Text className="text-[11px] font-sans-bold text-gray-700 ml-1">
+                          {turf.average_rating ? Math.min(parseFloat(turf.average_rating), 5).toFixed(1) : '0.0'}
+                        </Text>
+                        <Text className="text-[11px] font-sans-medium text-gray-400 ml-1">
+                          ({turf.total_reviews || '0'} reviews)
+                        </Text>
                       </View>
 
                       <View className="flex-row items-center justify-between">
@@ -795,6 +781,18 @@ export default function HomeScreen() {
 
         </ScrollView>
       </SafeAreaView>
+      <LocationDisabledModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        onSettings={() => {
+          setShowLocationModal(false);
+          if (Platform.OS === 'ios') {
+            Linking.openSettings();
+          } else {
+            Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS').catch(() => Linking.openSettings());
+          }
+        }}
+      />
     </View>
   );
 }

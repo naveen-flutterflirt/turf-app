@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, RefreshControl } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,9 @@ export default function QueriesScreen() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const fetchQueries = useCallback(async (showLoader = true) => {
     if (!userData?.token) return;
@@ -82,11 +85,13 @@ export default function QueriesScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('Success', 'Your query has been submitted.');
         setSubject('');
         setMessage('');
         setIsFormVisible(false);
         fetchQueries(true); // Refresh list
+        
+        setSuccessMessage('Your query has been submitted. Our team will contact you shortly.');
+        setSuccessModalVisible(true);
       } else {
         Alert.alert('Error', data.message || 'Failed to submit query.');
       }
@@ -111,7 +116,7 @@ export default function QueriesScreen() {
       
       {/* Header */}
       <View className="bg-white px-4 pb-4 flex-row items-center border-b border-gray-100" style={{ paddingTop: insets.top + 10 }}>
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2">
+        <TouchableOpacity onPress={() => router.replace('/(owner-tabs)/profile')} className="w-10 h-10 items-center justify-center -ml-2">
           <Ionicons name="arrow-back" size={24} color="#032221" />
         </TouchableOpacity>
         <Text className="text-xl font-sans-bold text-[#032221] ml-2">Support & Queries</Text>
@@ -247,6 +252,33 @@ export default function QueriesScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={successModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSuccessModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-center items-center px-6">
+          <View className="bg-white w-full rounded-3xl p-6 items-center shadow-xl">
+            <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-4">
+              <Ionicons name="checkmark-circle" size={40} color="#10B981" />
+            </View>
+            <Text className="text-xl font-sans-bold text-[#032221] mb-2 text-center">Submitted!</Text>
+            <Text className="text-sm font-sans-medium text-gray-500 text-center mb-6 leading-relaxed">
+              {successMessage}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setSuccessModalVisible(false)}
+              className="w-full bg-[#03624C] py-3.5 rounded-xl items-center"
+            >
+              <Text className="text-white font-sans-bold text-sm">Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

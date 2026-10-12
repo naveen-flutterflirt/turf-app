@@ -260,35 +260,26 @@ export default function NotificationsScreen() {
       <TouchableOpacity 
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.7}
-        className={`flex-row mx-5 mb-4 rounded-2xl bg-white shadow-sm border ${!item.is_read ? 'border-[#03624C]/30 shadow-[#03624C]/10' : 'border-gray-100'}`}
-        style={{
-          elevation: !item.is_read ? 3 : 1, // subtle lift for unread on Android
-          overflow: 'hidden'
-        }}
+        className={`flex-row px-5 py-4 border-b border-gray-100 ${!item.is_read ? 'bg-[#E6F4EA]/40' : 'bg-white'}`}
       >
-        {/* Unread Left Accent Bar */}
-        {!item.is_read && (
-          <View className="absolute left-0 top-0 bottom-0 w-1 bg-[#03624C]" />
-        )}
-
-        <View className="flex-row p-4 flex-1 items-center">
+        <View className="flex-row flex-1 items-start">
           {/* Icon */}
           <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${iconConfig.bg}`}>
             <Ionicons name={iconConfig.name as any} size={22} color={iconConfig.color} />
           </View>
           
           {/* Content */}
-          <View className="flex-1 justify-center relative pr-6">
-            <View className="flex-row justify-between items-center mb-1">
+          <View className="flex-1 justify-center pr-2">
+            <View className="flex-row justify-between items-center mb-0.5">
               <Text 
-                className={`flex-1 font-sans-bold text-[16px] ${!item.is_read ? 'text-[#032221]' : 'text-gray-800'}`} 
+                className={`flex-1 font-sans-bold text-[15px] ${!item.is_read ? 'text-[#032221]' : 'text-[#374151]'}`} 
                 numberOfLines={1}
               >
                 {item.title}
               </Text>
             </View>
             <Text 
-              className={`font-sans-medium text-[13px] leading-5 ${!item.is_read ? 'text-gray-700' : 'text-gray-500'}`} 
+              className={`font-sans-medium text-[13px] leading-5 ${!item.is_read ? 'text-[#032221]' : 'text-gray-500'}`} 
               numberOfLines={2}
             >
               {item.message}
@@ -299,13 +290,13 @@ export default function NotificationsScreen() {
           </View>
 
           {/* Delete Button & Unread Dot Container */}
-          <View className="absolute right-4 top-4 bottom-4 justify-between items-end">
+          <View className="items-end justify-between ml-2">
             <TouchableOpacity 
               onPress={() => deleteNotificationMutation.mutate(item.id)}
-              className="p-1 -mr-2 -mt-2"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              className="mb-4"
             >
-              <Ionicons name="close" size={16} color="#9CA3AF" />
+              <Ionicons name="close" size={16} color="#D1D5DB" />
             </TouchableOpacity>
             
             {!item.is_read && (
@@ -318,8 +309,8 @@ export default function NotificationsScreen() {
   };
 
   const renderSectionHeader = ({ section: { title } }: any) => (
-    <View className="px-6 py-2 mb-2">
-      <Text className="text-[13px] font-sans-bold tracking-wider text-gray-400 uppercase">
+    <View className="px-5 py-2.5 bg-[#F9FAFB]">
+      <Text className="text-[12px] font-sans-bold tracking-wider text-gray-500 uppercase">
         {title}
       </Text>
     </View>
@@ -362,7 +353,7 @@ export default function NotificationsScreen() {
           renderItem={renderNotification}
           renderSectionHeader={renderSectionHeader}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40, paddingTop: 10, flexGrow: 1 }}
+          contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}
           refreshing={isRefreshing}
           onRefresh={handleRefresh}
           stickySectionHeadersEnabled={false}

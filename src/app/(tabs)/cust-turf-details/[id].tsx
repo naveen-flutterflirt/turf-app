@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Linking, Platform, Animated } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -130,7 +130,7 @@ export default function TurfDetailsScreen() {
       showAlert('Error', 'Location coordinates not available for this turf.');
       return;
     }
-    const url = Platform.OS === 'ios' 
+    const url = Platform.OS === 'ios'
       ? `http://maps.apple.com/?daddr=${turf.latitude},${turf.longitude}`
       : `https://www.google.com/maps/dir/?api=1&destination=${turf.latitude},${turf.longitude}`;
     Linking.openURL(url).catch(() => {
@@ -199,15 +199,15 @@ export default function TurfDetailsScreen() {
   const totalImages = imagesArray.length || 1;
 
   return (
-    <View className="flex-1 bg-[#F9FAFB]">
-      <StatusBar style="light" />
+    <SafeAreaView className="flex-1 bg-[#F9FAFB]" edges={['top', 'bottom']}>
+      <StatusBar style="dark" />
 
       {/* Floating Top Nav */}
-      <Animated.View 
-        className="absolute top-0 left-0 right-0 px-4 flex-row justify-between items-center z-50" 
+      <Animated.View
+        className="absolute top-4 left-0 right-0 px-4 flex-row justify-between items-center z-50 mt-6"
         pointerEvents={isHeaderVisible ? "box-none" : "none"}
-        style={{ 
-          paddingTop: insets.top + 10, 
+        style={{
+          paddingTop: 12,
           opacity: headerOpacity,
           transform: [{ translateY: headerOpacity.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
         }}>
@@ -221,9 +221,9 @@ export default function TurfDetailsScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ paddingBottom: 120 }} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
         bounces={false}
         onScroll={(e) => {
           const currentScrollY = e.nativeEvent.contentOffset.y;
@@ -320,28 +320,32 @@ export default function TurfDetailsScreen() {
           {/* Rating */}
           <View className="flex-row items-center mb-7">
             <Ionicons name="star" size={16} color="#FBBF24" />
-            <Text className="font-sans-bold text-[13px] ml-1.5 text-[#032221]">4.5 <Text className="font-sans-medium text-gray-400 font-normal">(0 reviews)</Text></Text>
+            <Text className="font-sans-bold text-[13px] ml-1.5 text-[#032221]">
+              {turf.average_rating ? Math.min(parseFloat(turf.average_rating), 5).toFixed(1) : '0.0'}{' '}
+              <Text className="font-sans-medium text-gray-400 font-normal">({turf.total_reviews || '0'} reviews)</Text>
+            </Text>
           </View>
 
           {/* Turf Information Card */}
           <Text className="text-lg font-sans-bold text-[#032221] mb-3">Turf Information</Text>
           <View className="bg-white rounded-[10px] px-4 py-2 mb-8 border border-gray-100">
-            <View className="flex-row justify-between items-center py-3 border-b border-gray-50">
+            <View className="flex-row justify-between items-center py-3">
               <View className="flex-row items-center">
                 <View className="w-7 h-7 rounded-full bg-[#E6F4EA] items-center justify-center">
                   <Ionicons name="server-outline" size={14} color="#03624C" />
                 </View>
-                <Text className="font-sans-medium text-gray-500 text-[13px] ml-3">Price Per Hour</Text>
+                <Text className="font-sans-medium text-gray-500 text-[13px] leading-5 ml-3">Price Per Hour</Text>
               </View>
               <Text className="font-sans-bold text-[#032221] text-sm">₹{parseFloat(turf.price_per_hour || '0').toLocaleString('en-IN')}</Text>
             </View>
+            <View className="flex-row justify-between items-center pb-1 border-b border-gray-50"></View>
 
             <View className="flex-row justify-between items-center py-3">
               <View className="flex-row items-center">
-                <View className="w-8 h-8 rounded-full bg-[#E6F4EA] items-center justify-center">
+                <View className="w-7 h-7 rounded-full bg-[#E6F4EA] items-center justify-center">
                   <Ionicons name="time-outline" size={14} color="#03624C" />
                 </View>
-                <Text className="font-sans-medium text-gray-500 text-[13px] ml-3">Opening Hours</Text>
+                <Text className="font-sans-medium text-gray-500 text-[13px] leading-5 ml-3">Opening Hours</Text>
               </View>
               <Text className="font-sans-bold text-[#032221] text-sm">{formatTime(turf.opening_time)} - {formatTime(turf.closing_time)}</Text>
             </View>
@@ -389,6 +393,39 @@ export default function TurfDetailsScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Customer Feedback Section */}
+          <View className="mb-3 mt-4">
+            <Text className="text-lg font-sans-bold text-[#032221]">Customer Feedback</Text>
+          </View>
+          
+          {turf.feedbacks && turf.feedbacks.length > 0 ? (
+            <View className="mb-8">
+              {turf.feedbacks.map((feedback: any, index: number) => (
+                <View key={index} className="bg-[#F4F9F8] rounded-[16px] p-4 mb-4 border border-[#E5E7EB]">
+                  <View className="flex-row justify-between items-center mb-2">
+                    <Text className="font-sans-bold text-[14px] text-[#032221]">{feedback.customer_name || 'Customer'}</Text>
+                    <View className="flex-row">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons 
+                          key={star} 
+                          name="star" 
+                          size={12} 
+                          color={star <= (feedback.rating || 0) ? '#FBBF24' : '#E5E7EB'} 
+                          style={{ marginLeft: 2 }}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  <Text className="font-sans-medium text-[13px] text-gray-500 leading-5">
+                    {feedback.comment || 'No comment provided.'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text className="font-sans text-[13px] text-gray-500 mb-8">No feedback yet.</Text>
+          )}
+
         </View>
       </ScrollView>
 
@@ -417,6 +454,6 @@ export default function TurfDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-    </View>
+    </SafeAreaView>
   );
 }

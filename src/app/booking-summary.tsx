@@ -165,8 +165,7 @@ export default function BookingSummaryScreen() {
         }
       } catch (error: any) {
         setIsProcessing(false);
-        const errorMsg = typeof error === 'string' ? error : error.description || error.message || 'Payment was cancelled or failed.';
-        showAlert('Payment Failed', errorMsg);
+        showAlert('Payment Failed', 'Payment was cancelled or failed.');
       }
 
     } catch (error) {

@@ -102,10 +102,14 @@ export default function RootLayout() {
           {/* Removed explicit Stack.Screen children to let Expo Router auto-discover 
               and prevent the "extraneous route" warnings for booking-summary etc. */}
           <Stack
+            initialRouteName="index"
             screenOptions={{
               headerShown: false,
             }}
-          />
+          >
+            <Stack.Screen name="privacy-policy" options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="terms-and-conditions" options={{ animation: 'slide_from_right' }} />
+          </Stack>
         </AlertProvider>
       </ApiProvider>
     </QueryClientProvider>

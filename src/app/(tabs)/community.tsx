@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Platform, ActivityIndicator, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,13 +66,36 @@ export default function CommunityScreen() {
       if (!response.ok) throw new Error('Failed to delete broadcast');
       return response.json();
     },
-    onSuccess: () => {
+    onMutate: async (broadcastId) => {
+      // Optimistic update: cancel ongoing fetches
+      await queryClient.cancelQueries({ queryKey: ['communityBroadcasts'] });
+
+      // Instantly remove the broadcast from all matching cache queries
+      queryClient.setQueriesData({ queryKey: ['communityBroadcasts'] }, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) {
+          return old.filter(b => b.id !== broadcastId);
+        } else if (old.data) {
+          return { ...old, data: old.data.filter((b: any) => b.id !== broadcastId) };
+        }
+        return old;
+      });
+    },
+    onError: () => {
+      // Revert if API fails
+      queryClient.invalidateQueries({ queryKey: ['communityBroadcasts'] });
+    },
+    onSettled: () => {
+      // Ensure backend is perfectly in sync eventually
       queryClient.invalidateQueries({ queryKey: ['communityBroadcasts'] });
     }
   });
 
   const [activeTab, setActiveTab] = useState(params.tab === 'my_broadcasts' ? 'my_broadcasts' : 'near_you');
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedBroadcastId, setSelectedBroadcastId] = useState<string | null>(null);
   const sportsList = ['Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton'];
 
   const { data: broadcastsData, isLoading, isError, refetch } = useQuery({
@@ -123,6 +146,16 @@ export default function CommunityScreen() {
       }
     }
 
+    // 3. Filter by Search Query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const messageStr = (b.message || '').toLowerCase();
+      const hostName = (b.host_name || (b.user && b.user.name) || b.user_name || b.author || '').toLowerCase();
+      if (!messageStr.includes(query) && !hostName.includes(query)) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -141,8 +174,9 @@ export default function CommunityScreen() {
       <SafeAreaView className="flex-1">
         {/* Dynamic Header */}
         <View className="px-6 pt-4 pb-4 flex-row items-center justify-between">
+
           <View>
-            <Text className="text-[28px] font-sans-bold text-[#032221] leading-tight">
+            <Text className="text-2xl font-sans-bold text-[#032221]">
               {activeTab === 'my_broadcasts' ? 'My Broadcasts' : 'Community'}
             </Text>
             <Text className="text-[13px] font-sans-medium text-gray-500 mt-1">
@@ -167,6 +201,25 @@ export default function CommunityScreen() {
                 {hasUnreadMessages && (
                   <View className="absolute top-2.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-[#E8F5EE]" />
                 )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View className="px-6 mb-4 z-10">
+          <View className="flex-row items-center bg-white rounded-2xl px-4 py-1.5 shadow-sm border border-gray-100" style={{ elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 }}>
+            <Ionicons name="search" size={20} color="#03624C" />
+            <TextInput
+              className="flex-1 ml-3 font-sans-medium text-[#032221] text-[13px] h-10"
+              placeholder="Search by community or host..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color="#9CA3AF" />
               </TouchableOpacity>
             )}
           </View>
@@ -203,46 +256,41 @@ export default function CommunityScreen() {
             <TouchableOpacity
               onPress={() => setSelectedSport(null)}
               className={`px-4 py-2 flex-row items-center rounded-full ${selectedSport === null ? 'bg-[#03624C]' : 'bg-white border border-gray-100'}`}
-              style={selectedSport === null ? {} : { elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
             >
               <Ionicons name="grid" size={16} color={selectedSport === null ? '#FFF' : '#03624C'} />
-              <Text className={`font-sans-bold text-[13px] ml-1.5 ${selectedSport === null ? 'text-white' : 'text-[#032221]'}`}>All</Text>
+              <Text className={`font-sans-bold leading-5 text-[13px] ml-1.5 ${selectedSport === null ? 'text-white' : 'text-[#032221]'}`}>All</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setSelectedSport('Football')}
               className={`px-4 py-2 flex-row items-center rounded-full ${selectedSport === 'Football' ? 'bg-[#03624C]' : 'bg-white border border-gray-100'}`}
-              style={selectedSport === 'Football' ? {} : { elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
             >
               <Ionicons name="football" size={16} color={selectedSport === 'Football' ? '#FFF' : '#032221'} />
-              <Text className={`font-sans-bold text-[13px] ml-1.5 ${selectedSport === 'Football' ? 'text-white' : 'text-[#6B7280]'}`}>Football</Text>
+              <Text className={`font-sans-bold leading-5 text-[13px] ml-1.5 ${selectedSport === 'Football' ? 'text-white' : 'text-[#6B7280]'}`}>Football</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setSelectedSport('Cricket')}
               className={`px-4 py-2 flex-row items-center rounded-full ${selectedSport === 'Cricket' ? 'bg-[#03624C]' : 'bg-white border border-gray-100'}`}
-              style={selectedSport === 'Cricket' ? {} : { elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
             >
-              <Text className="text-[14px]">🏏</Text>
-              <Text className={`font-sans-bold text-[13px] ml-1.5 ${selectedSport === 'Cricket' ? 'text-white' : 'text-[#6B7280]'}`}>Cricket</Text>
+              <Text style={{ fontSize: 16, lineHeight: 20 }}>🏏</Text>
+              <Text className={`font-sans-bold leading-5 text-[13px] ml-1.5 ${selectedSport === 'Cricket' ? 'text-white' : 'text-[#6B7280]'}`}>Cricket</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setSelectedSport('Tennis')}
               className={`px-4 py-2 flex-row items-center rounded-full ${selectedSport === 'Tennis' ? 'bg-[#03624C]' : 'bg-white border border-gray-100'}`}
-              style={selectedSport === 'Tennis' ? {} : { elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
             >
               <Ionicons name="tennisball" size={16} color={selectedSport === 'Tennis' ? '#FFF' : '#84CC16'} />
-              <Text className={`font-sans-bold text-[13px] ml-1.5 ${selectedSport === 'Tennis' ? 'text-white' : 'text-[#6B7280]'}`}>Tennis</Text>
+              <Text className={`font-sans-bold leading-5 text-[13px] ml-1.5 ${selectedSport === 'Tennis' ? 'text-white' : 'text-[#6B7280]'}`}>Tennis</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setSelectedSport('Badminton')}
               className={`px-4 py-2 flex-row items-center rounded-full ${selectedSport === 'Badminton' ? 'bg-[#03624C]' : 'bg-white border border-gray-100'}`}
-              style={selectedSport === 'Badminton' ? {} : { elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}
             >
-              <Text className="text-[14px]">🏸</Text>
-              <Text className={`font-sans-bold text-[13px] ml-1.5 ${selectedSport === 'Badminton' ? 'text-white' : 'text-[#6B7280]'}`}>Badminton</Text>
+              <Text style={{ fontSize: 16, lineHeight: 20 }}>🏸</Text>
+              <Text className={`font-sans-bold leading-5 text-[13px] ml-1.5 ${selectedSport === 'Badminton' ? 'text-white' : 'text-[#6B7280]'}`}>Badminton</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -291,7 +339,9 @@ export default function CommunityScreen() {
                             <View className={`${tagBg} px-2 py-0.5 rounded-md self-start mb-1.5`}>
                               <Text className={`text-[10px] font-sans-bold ${tagText}`}>{sportName}</Text>
                             </View>
-                            <Text className="text-[16px] font-sans-bold text-[#032221] mb-1" numberOfLines={1}>{post.message || 'Friendly Match'}</Text>
+                            <Text className="text-[16px] font-sans-bold text-[#032221] mb-1 pr-8" numberOfLines={1} ellipsizeMode="tail">
+                              {post.message || 'Friendly Match'}
+                            </Text>
                             <View className="flex-row items-center mb-1">
                               <Ionicons name="calendar-outline" size={12} color="#6B7280" />
                               <Text className="text-[11px] font-sans-medium text-gray-500 ml-1">
@@ -325,10 +375,10 @@ export default function CommunityScreen() {
                             }}
                           >
                             <Ionicons name="people-outline" size={16} color="#032221" className="mr-2" />
-                            <Text className="text-[#032221] font-sans-bold text-[12px] ml-1">View Requests</Text>
+                            <Text className="text-[#032221] leading-5 font-sans-bold text-[12px] ml-1">View Requests</Text>
                             {(post.pending_requests > 0 || true) && (
                               <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center ml-2">
-                                <Text className="text-white font-sans-bold text-[10px]">{post.pending_requests || 5}</Text>
+                                <Text className="text-white leading-5 font-sans-bold text-[10px]">{post.pending_requests || 0}</Text>
                               </View>
                             )}
                           </TouchableOpacity>
@@ -337,22 +387,8 @@ export default function CommunityScreen() {
                             className="bg-white border border-red-100 py-2.5 px-4 rounded-xl flex-row justify-center items-center"
                             onPress={(e) => {
                               e.stopPropagation();
-                              Alert.alert(
-                                "Delete Broadcast?",
-                                "This will permanently remove your broadcast. Players will be notified and all pending requests will be cancelled.",
-                                [
-                                  { text: "Cancel", style: "cancel" },
-                                  {
-                                    text: "Delete",
-                                    style: "destructive",
-                                    onPress: () => {
-                                      deleteBroadcastMutation.mutate(post.id, {
-                                        onError: () => Alert.alert('Error', 'Failed to delete broadcast.')
-                                      });
-                                    }
-                                  }
-                                ]
-                              );
+                              setSelectedBroadcastId(post.id);
+                              setDeleteModalVisible(true);
                             }}
                           >
                             <Ionicons name="trash-outline" size={16} color="#EF4444" />
@@ -367,21 +403,17 @@ export default function CommunityScreen() {
                     <TouchableOpacity
                       key={post.id}
                       onPress={() => router.push({ pathname: '/broadcast-details', params: { broadcastData: JSON.stringify(post) } })}
-                      className="bg-white rounded-[20px] mb-4 p-5"
-                      style={{ elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}
+                      className="bg-white rounded-[20px] mb-3 p-4 border border-gray-100"
                     >
-                      {/* Top Row: Sport Tag & Three Dots */}
-                      <View className="flex-row justify-between items-start mb-3">
+                      {/* Top Row: Sport Tag */}
+                      <View className="flex-row justify-between items-start mb-2">
                         <View className={`${tagBg} px-3 py-1 rounded-md`}>
                           <Text className={`text-[12px] font-sans-bold ${tagText}`}>{sportName}</Text>
                         </View>
-                        <TouchableOpacity className="p-1 -mr-2">
-                          <Ionicons name="ellipsis-vertical" size={20} color="#032221" />
-                        </TouchableOpacity>
                       </View>
 
                       {/* Turf Name (Community Name) */}
-                      <Text className="text-[18px] font-sans-bold text-[#032221] mb-1" numberOfLines={1}>
+                      <Text className="text-[18px] font-sans-bold text-[#032221] mb-1 pr-2 flex-shrink" numberOfLines={1} ellipsizeMode="tail">
                         {post.message}
                       </Text>
 
@@ -394,47 +426,28 @@ export default function CommunityScreen() {
                       </View>
 
                       {/* Info Rows */}
-                      <View className="mb-4">
-                        {/* Host and Date Row */}
-                        <View className="flex-row items-center mb-3">
+                      <View>
+                        {/* Host and Players Row */}
+                        <View className="flex-row items-center mb-2">
                           <View className="flex-row items-center flex-1">
-                            <Ionicons name="person-outline" size={18} color="#6B7280" />
-                            <Text className="text-[14px] font-sans-medium text-[#6B7280] ml-2" numberOfLines={1}>
-                              <Text className="text-[#6B7280]">{post.host_id === userData?.id ? (userData?.name || 'You') : (post.host_name || (post.user && post.user.name) || post.user_name || post.author || 'Player')}</Text>
+                            <Ionicons name="person-outline" size={16} color="#6B7280" />
+                            <Text className="text-[13px] font-sans-medium text-[#6B7280] ml-1.5" numberOfLines={1}>
+                              {post.host_id === userData?.id ? (userData?.name || 'You') : (post.host_name || (post.user && post.user.name) || post.user_name || post.author || 'Player')}
                             </Text>
                           </View>
-                          <View className="w-[1px] h-4 bg-gray-200 mx-3" />
                           <View className="flex-row items-center flex-1">
-                            <Ionicons name="calendar-outline" size={18} color="#6B7280" />
-                            <Text className="text-[14px] font-sans-bold text-[#6B7280] ml-2">
-                              {post.play_date ? new Date(post.play_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'} {"\n"} {post.start_time ? post.start_time.slice(0, 5) : 'TBD'}
-                            </Text>
+                            <Ionicons name="people-outline" size={16} color="#03624C" />
+                            <Text className="text-[13px] font-sans-bold text-[#4B5563] ml-1.5">{post.players_needed ? `${post.players_needed} needed` : 'Open'}</Text>
                           </View>
                         </View>
 
-                        {/* Players and Status Row */}
+                        {/* Date Row */}
                         <View className="flex-row items-center">
-                          <View className="flex-row items-center flex-1">
-                            <Ionicons name="people-outline" size={18} color="#03624C" />
-                            <Text className="text-[14px] font-sans-bold text-[#4B5563] ml-2">{post.players_needed ? `${post.players_needed} needed` : 'Open'}</Text>
-                          </View>
-                          <View className="w-[1px] h-4 bg-gray-200 mx-3" />
-                          <View className="flex-row items-center flex-1">
-                            <Text className="text-[14px]">⏳</Text>
-                            <Text className="text-[14px] font-sans-bold text-[#4B5563] ml-2">
-                              {post.status === 'ACTIVE' ? 'Active' : post.status}
-                            </Text>
-                          </View>
+                          <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                          <Text className="text-[13px] font-sans-bold text-[#6B7280] ml-1.5">
+                            {post.play_date ? new Date(post.play_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Date TBD'}
+                          </Text>
                         </View>
-                      </View>
-
-                      {/* Footer Row (Chat Link) */}
-                      <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-gray-100">
-                        <View className="flex-row items-center">
-                          <Ionicons name="chatbubble-outline" size={20} color="#03624C" />
-                          <Text className="text-[14px] font-sans-medium text-[#6B7280] ml-2">Discuss location in chat</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#03624C" />
                       </View>
                     </TouchableOpacity>
                   );
@@ -444,6 +457,53 @@ export default function CommunityScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Delete Broadcast Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View className="flex-1 bg-black/40 justify-center items-center px-6">
+          <View className="bg-white w-full rounded-[28px] p-6 shadow-xl">
+            <View className="w-16 h-16 rounded-full bg-red-50 mx-auto items-center justify-center mb-5 border-4 border-red-100">
+              <Ionicons name="trash" size={28} color="#EF4444" />
+            </View>
+
+            <Text className="text-xl font-sans-bold text-[#032221] text-center mb-2">
+              Delete Broadcast?
+            </Text>
+
+            <Text className="text-[15px] font-sans-medium text-gray-500 text-center mb-8 leading-6 px-2">
+              This will permanently remove your broadcast. Players will be notified and all pending requests will be cancelled.
+            </Text>
+
+            <View className="flex-row">
+              <TouchableOpacity
+                className="flex-1 bg-gray-50 border border-gray-200 py-3.5 rounded-2xl mr-3 active:bg-gray-100"
+                onPress={() => setDeleteModalVisible(false)}
+              >
+                <Text className="text-gray-600 font-sans-bold text-center text-[15px]">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-1 bg-[#EF4444] py-3.5 rounded-2xl active:bg-red-600 shadow-sm shadow-red-500/20"
+                onPress={() => {
+                  if (selectedBroadcastId) {
+                    deleteBroadcastMutation.mutate(selectedBroadcastId, {
+                      onError: () => Alert.alert('Error', 'Failed to delete broadcast.')
+                    });
+                  }
+                  setDeleteModalVisible(false);
+                }}
+              >
+                <Text className="text-white font-sans-bold text-center text-[15px]">Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

@@ -41,7 +41,7 @@ export default function SearchScreen() {
   }, [params.sport]);
 
   // Sports list for category selector
-  const sportsList = ['Football', 'Cricket', 'Basketball', 'Tennis', 'Badminton', 'Others'];
+  const sportsList = ['Snooker & Pool', 'Cricket', 'Turf / Football / Box Cricket', 'Badminton', 'Tennis', 'Table Tennis', 'Shooting Range', 'Polo', 'Equestrian', 'Golf', 'Swimming & Clubs', 'Indoor Games / Multi-sport', 'Water Sports', 'Others'];
 
   const { data, isLoading, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ['searchTurfs', filters],
@@ -158,7 +158,7 @@ export default function SearchScreen() {
       <SafeAreaView className="flex-1">
         <View className="px-6 pt-4 pb-3 flex-row justify-between items-start z-10">
           <View>
-            <Text className="text-[28px] font-sans-bold text-[#032221] mb-1 leading-tight">
+            <Text className="text-2xl font-sans-bold text-[#032221]">
               Search Turfs
             </Text>
             <Text className="text-sm font-sans-medium text-gray-500">
@@ -175,12 +175,14 @@ export default function SearchScreen() {
           }
           onScroll={({ nativeEvent }) => {
             const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-            const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+            // Increased threshold to 800px so it triggers earlier during fast scrolls
+            const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 800;
             if (isCloseToBottom && hasNextPage && !isFetchingNextPage) {
               fetchNextPage();
             }
           }}
-          scrollEventThrottle={400}
+          // Reduced throttle to 16ms (60fps) so we don't miss scroll events when swiping very fast
+          scrollEventThrottle={16}
         >
 
           {/* Search Bar */}
@@ -192,7 +194,7 @@ export default function SearchScreen() {
                 placeholderTextColor="#9CA3AF"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                className="flex-1 ml-3 font-sans-medium text-turf-text text-[13px] h-10"
+                className="flex-1 ml-3 pb-2 pt-1 font-sans-medium text-turf-text text-[13px] h-10"
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -206,26 +208,26 @@ export default function SearchScreen() {
           <View className="px-6 flex-row items-center flex-wrap gap-2 mb-6 z-10">
             <TouchableOpacity
               onPress={() => setShowDistanceModal(true)}
-              className={`px-4 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.radius ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
+              className={`px-3 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.radius ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
             >
               <Text className={`font-sans-bold text-[13px] mx-2 ${filters.radius ? 'text-[#03624C]' : 'text-[#032221]'}`}>{getDistanceLabel()}</Text>
-              <Ionicons name="chevron-down" size={14} color={filters.radius ? '#03624C' : '#03624C'} />
+              <Ionicons name="chevron-down" style={{ paddingTop: 5 }} size={14} color={filters.radius ? '#03624C' : '#03624C'} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setShowPriceModal(true)}
-              className={`px-4 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.max_price ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
+              className={`px-3 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.max_price ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
             >
               <Text className={`font-sans-bold text-[13px] mx-2 ${filters.max_price ? 'text-[#03624C]' : 'text-[#032221]'}`}>{getPriceLabel()}</Text>
-              <Ionicons name="chevron-down" size={14} color={filters.max_price ? '#03624C' : '#03624C'} />
+              <Ionicons name="chevron-down" style={{ paddingTop: 5 }} size={14} color={filters.max_price ? '#03624C' : '#03624C'} />
             </TouchableOpacity>
 
             <TouchableOpacity
               onPress={() => setShowSportModal(true)}
-              className={`px-4 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.sport ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
+              className={`px-3 pb-2 pt-1 rounded-full flex-row items-center border shadow-sm ${filters.sport ? 'bg-[#E6F4EA] border-[#03624C]/20' : 'bg-white border-gray-100'}`} style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3 }}
             >
               <Text className={`font-sans-bold text-[13px] mx-2 ${filters.sport ? 'text-[#03624C]' : 'text-[#032221]'}`}>{filters.sport || 'Sport'}</Text>
-              <Ionicons name="chevron-down" size={14} color={filters.sport ? '#03624C' : '#03624C'} />
+              <Ionicons name="chevron-down" style={{ paddingTop: 5 }} size={14} color={filters.sport ? '#03624C' : '#03624C'} />
             </TouchableOpacity>
 
             {hasActiveFilters && (
@@ -293,8 +295,12 @@ export default function SearchScreen() {
 
                       <View className="flex-row items-center mb-1.5">
                         <Ionicons name="star" size={12} color="#FBBF24" />
-                        <Text className="text-[11px] font-sans-bold text-gray-700 ml-1">4.5</Text>
-                        <Text className="text-[11px] font-sans-medium text-gray-400 ml-1">(0 reviews)</Text>
+                        <Text className="text-[11px] font-sans-bold text-gray-700 ml-1">
+                          {turf.average_rating ? Math.min(parseFloat(turf.average_rating), 5).toFixed(1) : '0.0'}
+                        </Text>
+                        <Text className="text-[11px] font-sans-medium text-gray-400 ml-1">
+                          ({turf.total_reviews || '0'} reviews)
+                        </Text>
                       </View>
 
                       <View className="flex-row items-center">

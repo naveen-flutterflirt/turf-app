@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -59,7 +59,7 @@ export default function CompleteOwnerProfileScreen() {
       if (response.ok) {
         // Log the user in immediately
         login('OWNER', data);
-        router.replace('/(owner-tabs)/edit-bank-details' as any);
+        router.replace('/(owner-tabs)' as any);
       } else {
         showAlert('Signup Failed', data.message || 'An error occurred while completing your profile');
       }
@@ -74,7 +74,8 @@ export default function CompleteOwnerProfileScreen() {
     <View className="flex-1 bg-turf-bg">
       <StatusBar style="dark" />
       <SafeAreaView className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} keyboardShouldPersistTaps="handled">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} keyboardShouldPersistTaps="handled">
           
           {/* Header Area */}
           <View className="px-6 pt-4 pb-8 z-10">
@@ -143,7 +144,8 @@ export default function CompleteOwnerProfileScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );

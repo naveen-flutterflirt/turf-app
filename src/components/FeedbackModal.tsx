@@ -3,6 +3,7 @@ import { View, Text, Modal, TouchableOpacity, TextInput, ActivityIndicator, Aler
 import { Ionicons } from '@expo/vector-icons';
 import { useApi } from '../context/ApiContext';
 import { useAppStore } from '../stores/useAppStore';
+import { useAlert } from '../context/AlertContext';
 
 interface FeedbackModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface FeedbackModalProps {
 
 export default function FeedbackModal({ visible, onClose, bookingId, turfId, initialFeedback, onSuccess }: FeedbackModalProps) {
   const { baseUrl } = useApi();
+  const { showAlert } = useAlert();
   const userData = useAppStore((state) => state.userData);
   
   const [rating, setRating] = useState(0);
@@ -32,6 +34,11 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
         setRating(initialFeedback.rating || 0);
         setComment(initialFeedback.comment || '');
         setExistingFeedbackId(initialFeedback.id);
+        
+        // If we only got the ID but no rating/comment, fetch the details
+        if (!initialFeedback.rating && !initialFeedback.comment) {
+          fetchExistingFeedback();
+        }
       } else {
         setRating(0);
         setComment('');
@@ -64,7 +71,7 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Validation Error', 'Please select a rating');
+      showAlert('Validation Error', 'Please select a rating');
       return;
     }
 
@@ -86,14 +93,14 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
       
       const data = await response.json();
       if (response.ok && data.success !== false) {
-        Alert.alert('Success', 'Thank you for your feedback!');
+        showAlert('Success', 'Thank you for your feedback!');
         onSuccess();
         onClose();
       } else {
-        Alert.alert('Error', data.message || 'Failed to submit feedback');
+        showAlert('Error', data.message || 'Failed to submit feedback');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error');
+      showAlert('Error', 'Network error');
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +109,7 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
   const handleUpdate = async () => {
     if (!existingFeedbackId) return;
     if (rating === 0) {
-      Alert.alert('Validation Error', 'Please select a rating');
+      showAlert('Validation Error', 'Please select a rating');
       return;
     }
 
@@ -122,21 +129,21 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
       
       const data = await response.json();
       if (response.ok && data.success !== false) {
-        Alert.alert('Success', 'Feedback updated successfully');
+        showAlert('Success', 'Feedback updated successfully');
         onSuccess();
         onClose();
       } else {
-        Alert.alert('Error', data.message || 'Failed to update feedback');
+        showAlert('Error', data.message || 'Failed to update feedback');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error');
+      showAlert('Error', 'Network error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert(
+    showAlert(
       "Delete Review",
       "Are you sure you want to delete this review?",
       [
@@ -159,14 +166,14 @@ export default function FeedbackModal({ visible, onClose, bookingId, turfId, ini
       
       const data = await response.json();
       if (response.ok && data.success !== false) {
-        Alert.alert('Success', 'Feedback deleted successfully');
+        showAlert('Success', 'Feedback deleted successfully');
         onSuccess();
         onClose();
       } else {
-        Alert.alert('Error', data.message || 'Failed to delete feedback');
+        showAlert('Error', data.message || 'Failed to delete feedback');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error');
+      showAlert('Error', 'Network error');
     } finally {
       setIsLoading(false);
     }

@@ -11,6 +11,19 @@ import { useAlert } from '../context/AlertContext';
 import { globalSocketInstance } from '../hooks/useGlobalSocket';
 import io, { Socket } from 'socket.io-client';
 
+const getAvatarColors = (name: string) => {
+  const colors = [
+    { bg: '#E8F5EE', text: '#03624C', border: 'rgba(3, 98, 76, 0.1)' },
+    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
+    { bg: '#faf5ff', text: '#9333ea', border: '#e9d5ff' },
+    { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa' },
+    { bg: '#fdf2f8', text: '#db2777', border: '#fbcfe8' },
+    { bg: '#eef2ff', text: '#4f46e5', border: '#c7d2fe' },
+  ];
+  const index = (name || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+  return colors[index];
+};
+
 export default function ChatRoomScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -29,6 +42,7 @@ export default function ChatRoomScreen() {
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const avatarColors = getAvatarColors(roomName);
 
   // Fetch myChats to get the dynamic room name
   const { data: myChatsResponse } = useQuery({
@@ -131,8 +145,8 @@ export default function ChatRoomScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       className="flex-1 bg-[#F9FAFB]"
     >
       <StatusBar style="dark" />
@@ -140,16 +154,17 @@ export default function ChatRoomScreen() {
       <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
         {/* Header */}
         <View className="px-5 py-4 flex-row items-center justify-between border-b border-gray-100 bg-white">
-          <View className="flex-row items-center">
+          <View className="flex-row items-center flex-1">
             <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2 mr-1">
               <Ionicons name="arrow-back" size={24} color="#032221" />
             </TouchableOpacity>
-            <View className="w-10 h-10 rounded-full bg-gray-200 items-center justify-center mr-3 overflow-hidden">
-              <Ionicons name="people" size={20} color="#9CA3AF" />
+            <View className="w-10 h-10 rounded-full items-center justify-center mr-3 border" style={{ backgroundColor: avatarColors.bg, borderColor: avatarColors.border }}>
+              <Text className="text-[16px] font-sans-bold text-center" style={{ color: avatarColors.text, textAlignVertical: 'center', includeFontPadding: false }}>
+                {dynamicRoomName.charAt(0).toUpperCase()}
+              </Text>
             </View>
-            <View>
-              <Text className="text-[16px] font-sans-bold text-[#032221]">{dynamicRoomName}</Text>
-              <Text className="text-[12px] font-sans-medium text-[#00DF81]">Online</Text>
+            <View className="flex-1 mr-2 justify-center">
+              <Text className="text-[16px] font-sans-bold text-[#032221]" style={{ includeFontPadding: false, textAlignVertical: 'center' }} numberOfLines={1}>{dynamicRoomName}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => router.push({ pathname: '/chat-info', params: { roomId, roomName: dynamicRoomName, isHost: isHost ? 'true' : 'false' } })}>
@@ -174,16 +189,27 @@ export default function ChatRoomScreen() {
               const isMe = msg.senderId === userData?.id || msg.sender_id === userData?.id;
 
               return (
-                <View key={index} className={`mb-4 max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`}>
+                <View key={index} className={`mb-4 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
                   {!isMe && (
-                    <Text className="text-[11px] font-sans-medium text-gray-500 mb-1 ml-1">
-                      {msg.sender_name || 'User'}
-                    </Text>
+                    <View className="mr-2 justify-end pb-1">
+                      <View className="w-8 h-8 rounded-full items-center justify-center border" style={{ backgroundColor: getAvatarColors(msg.sender_name || 'User').bg, borderColor: getAvatarColors(msg.sender_name || 'User').border }}>
+                        <Text className="text-[12px] font-sans-bold text-center" style={{ color: getAvatarColors(msg.sender_name || 'User').text, textAlignVertical: 'center', includeFontPadding: false }}>
+                          {(msg.sender_name || 'U').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
                   )}
-                  <View className={`px-4 py-3 rounded-2xl ${isMe ? 'bg-[#03624C] rounded-tr-sm' : 'bg-white border border-gray-100 rounded-tl-sm shadow-sm'}`}>
-                    <Text className={`text-[14px] font-sans-medium ${isMe ? 'text-white' : 'text-[#032221]'}`}>
-                      {msg.message}
-                    </Text>
+                  <View className={`max-w-[75%]`}>
+                    {!isMe && (
+                      <Text className="text-[11px] font-sans-medium text-gray-500 mb-1 ml-1">
+                        {msg.sender_name || 'User'}
+                      </Text>
+                    )}
+                    <View className={`px-4 py-3 rounded-2xl ${isMe ? 'bg-[#03624C] rounded-tr-sm' : 'bg-white border border-gray-100 rounded-tl-sm shadow-sm'}`}>
+                      <Text className={`text-[14px] font-sans-medium ${isMe ? 'text-white' : 'text-[#032221]'}`}>
+                        {msg.message}
+                      </Text>
+                    </View>
                   </View>
                 </View>
               );
@@ -195,7 +221,7 @@ export default function ChatRoomScreen() {
         <View className="px-5 py-3 bg-white border-t border-gray-100 flex-row items-center">
 
 
-          <View className="flex-1 bg-[#F3F4F6] rounded-full px-4 py-2 flex-row items-center min-h-[44px]">
+          <View className="flex-1 bg-[#F3F4F6] rounded-[20px] px-4 py-2 flex-row items-center min-h-[44px]">
             <TextInput
               className="flex-1 text-[14px] font-sans-medium text-[#032221] max-h-[100px]"
               placeholder="Type a message..."

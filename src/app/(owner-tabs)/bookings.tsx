@@ -77,7 +77,7 @@ export default function OwnerBookingsScreen() {
       if (response.ok && data.success) {
         setTotalPages(data.meta?.total_pages || 1);
         hasFetchedRef.current = true;
-        
+
         const validBookings = (data.data || []).filter((b: any) => {
           const status = (b.status || '').toUpperCase();
           return status !== 'PENDING' && status !== 'PAYMENT_PENDING';
@@ -323,10 +323,10 @@ export default function OwnerBookingsScreen() {
                 const bookingDateTime = new Date(`${booking.booking_date?.split('T')[0]}T${booking.start_time || '00:00:00'}`);
                 const isCompleted = status === 'COMPLETED' || (status === 'CONFIRMED' && bookingDateTime < new Date());
 
-                let statusConfig = { 
-                  bg: isCompleted ? 'bg-[#F3F4F6]' : 'bg-[#E8F5EE]', 
-                  text: isCompleted ? 'text-[#4B5563]' : 'text-[#03624C]', 
-                  label: isCompleted ? 'COMPLETED' : 'CONFIRMED' 
+                let statusConfig = {
+                  bg: isCompleted ? 'bg-[#F3F4F6]' : 'bg-[#E8F5EE]',
+                  text: isCompleted ? 'text-[#4B5563]' : 'text-[#03624C]',
+                  label: isCompleted ? 'COMPLETED' : 'CONFIRMED'
                 };
 
                 if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
@@ -342,49 +342,50 @@ export default function OwnerBookingsScreen() {
                       pathname: `/(owner-tabs)/booking-details/${booking.booking_id}` as any,
                       params: { bookingData: JSON.stringify(booking) }
                     })}
-                    className="bg-white rounded-2xl p-4 mb-4 border border-gray-100 flex-row justify-between items-center"
+                    className="bg-white rounded-2xl p-4 mb-4 border border-gray-100 flex-col"
                     style={{ elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}
                   >
-                    <View className="flex-1">
-                      {/* Turf Name and Status */}
-                      <View className="flex-row justify-between items-center mb-3">
-                        <Text className="font-sans-bold text-[#032221] text-base leading-tight flex-1 pr-2" numberOfLines={1}>{booking.turf_name}</Text>
-                        <View className={`px-2 py-1 rounded-md ${statusConfig.bg}`}>
-                          <Text className={`text-[9px] font-sans-bold uppercase ${statusConfig.text}`}>{statusConfig.label}</Text>
+                    {/* Top Row: Turf & Customer */}
+                    <View className="flex-row justify-between items-start mb-3">
+                      <View className="flex-1 pr-3">
+                        <Text className="font-sans-bold text-[#032221] text-base mb-1.5" numberOfLines={1}>{booking.turf_name}</Text>
+                        <View className="flex-row items-center">
+                          <Ionicons name="person-outline" size={14} color="#6B7280" />
+                          <Text className="ml-1.5 font-sans-medium text-gray-600 text-xs" numberOfLines={1}>{booking.customer_name}</Text>
                         </View>
                       </View>
-
-                      {/* Customer Name */}
-                      <View className="flex-row items-center mb-1.5">
-                        <Ionicons name="person-outline" size={14} color="#6B7280" />
-                        <Text className="ml-2 font-sans-medium text-gray-600 text-xs">{booking.customer_name}</Text>
-                      </View>
-
-                      {/* Date */}
-                      <View className="flex-row items-center mb-1.5">
-                        <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                        <Text className="ml-2 font-sans-medium text-gray-600 text-xs">{formatDate(booking.booking_date)}</Text>
-                      </View>
-
-                      {/* Time */}
-                      <View className="flex-row items-center">
-                        <Ionicons name="time-outline" size={14} color="#6B7280" />
-                        <Text className="ml-2 font-sans-medium text-gray-600 text-xs">
-                          {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                        </Text>
+                      <View className="items-end">
+                        <View className={`px-2 py-1 rounded-md mb-1 ${statusConfig.bg}`}>
+                          <Text className={`text-[10px] font-sans-bold uppercase ${statusConfig.text}`}>{statusConfig.label}</Text>
+                        </View>
+                        <Text className="font-sans-bold text-gray-400 text-[9px] uppercase tracking-widest">{booking.sport_name || booking.sports_name || booking.sport || 'SPORT'}</Text>
                       </View>
                     </View>
 
-                    {/* Right side Price and Arrow */}
-                    <View className="items-end justify-between self-stretch ml-4 pt-1">
-                      <Ionicons name="chevron-forward" size={20} color="#032221" />
-                      <Text className="font-sans-bold text-[#03624C] text-base">₹{parseInt(booking.total_price || '0').toLocaleString('en-IN')}</Text>
+                    {/* Divider */}
+                    <View className="h-[1px] bg-gray-50 w-full mb-3" />
+
+                    {/* Bottom Row: Date/Time & Price */}
+                    <View className="flex-row justify-between items-end">
+                      <View>
+                        <View className="flex-row items-center mb-1.5">
+                          <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                          <Text className="ml-1.5 font-sans-medium text-gray-600 text-xs">{formatDate(booking.booking_date)}</Text>
+                        </View>
+                        <View className="flex-row items-center">
+                          <Ionicons name="time-outline" size={14} color="#6B7280" />
+                          <Text className="ml-1.5 font-sans-medium text-gray-600 text-xs">
+                            {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text className="font-sans-bold text-[#03624C] text-lg">₹{parseInt(booking.total_price || '0').toLocaleString('en-IN')}</Text>
                     </View>
                   </TouchableOpacity>
                 );
               })
             )}
-            
+
             {/* Loading more indicator */}
             {isFetchingMore && (
               <View className="py-4 items-center justify-center">

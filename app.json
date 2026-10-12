@@ -2,16 +2,22 @@
   "expo": {
     "name": "Turfcut",
     "slug": "turfcut",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_only.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.turfcut.app",
-      "buildNumber": "1",
-      "associatedDomains": ["applinks:turf-admin-dashboard-six.vercel.app"]
+      "buildNumber": "2",
+      "associatedDomains": [
+        "applinks:turf-admin-dashboard-six.vercel.app",
+        "applinks:turf-admin-dashboard-six.vercel.app"
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -23,7 +29,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.turfcut.app",
-      "versionCode": 10,
+      "versionCode": 21,
       "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
@@ -36,7 +42,10 @@
               "host": "turf-admin-dashboard-six.vercel.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -49,7 +58,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#E6F4FE",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 400
         }
@@ -61,7 +70,8 @@
         "expo-build-properties",
         {
           "android": {
-            "enableProguardInReleaseBuilds": true
+            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],

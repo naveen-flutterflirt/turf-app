@@ -20,7 +20,7 @@ if (!isExpoGo) {
   try {
     GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
     GoogleSignin.configure({
-      webClientId: '1090732856735-b6flsagu6ielg7q7b7ac8guknn36aj6v.apps.googleusercontent.com',
+      webClientId: '1090732856735-4mfrodeh15igjitpl7ha56uvmd31pa0h.apps.googleusercontent.com',
     });
   } catch (e) {
     console.warn('Google Signin could not be configured', e);
@@ -38,11 +38,17 @@ export default function OwnerSignupScreen() {
   const [email, setEmail] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (!name || !phone || !email || !businessName || !password) {
       showAlert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      showAlert('Error', 'Please accept the Terms & Conditions and Privacy Policy');
       return;
     }
 
@@ -222,6 +228,22 @@ export default function OwnerSignupScreen() {
             <Text className="text-xs font-sans-medium text-gray-400 mt-[-10px] mb-4 ml-1">
               Minimum 6 characters
             </Text>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setAcceptedTerms(!acceptedTerms)}
+              className="flex-row items-center mt-2 mb-4 ml-1 pr-6"
+            >
+              <View className={`w-5 h-5 rounded border ${acceptedTerms ? 'bg-primary-dark border-primary-dark' : 'border-gray-400'} items-center justify-center mr-3`}>
+                {acceptedTerms && <Ionicons name="checkmark" size={14} color="white" />}
+              </View>
+              <Text className="text-sm text-gray-600 font-sans-medium flex-1">
+                I agree to the{' '}
+                <Text onPress={() => router.push('/terms-and-conditions' as any)} className="text-primary-dark">Terms & Conditions</Text>
+                {' '}and{' '}
+                <Text onPress={() => router.push('/privacy-policy' as any)} className="text-primary-dark">Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               activeOpacity={0.8}
